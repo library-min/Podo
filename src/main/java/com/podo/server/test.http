@@ -1,0 +1,9 @@
+### 1. 여행 방 만들기 요청 (POST)
+POST http://localhost:8080/api/travels
+Content-Type: application/json
+
+{
+  "title": "2026 삿포로 눈꽃 여행",
+  "startDate": "2026-02-10",
+  "endDate": "2026-02-14"
+}
