@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Mail, Lock, User, Sparkles } from 'lucide-react';
 import axios from 'axios';
+import AlertModal from '../components/AlertModal';
 
 function SignupPage() {
     const navigate = useNavigate();
@@ -13,6 +14,28 @@ function SignupPage() {
     });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+
+    // Alert State
+    const [alertState, setAlertState] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'success',
+        onClose: () => {}
+    });
+
+    const showAlert = (title, message, type = 'success', onClose = () => {}) => {
+        setAlertState({
+            isOpen: true,
+            title,
+            message,
+            type,
+            onClose: () => {
+                setAlertState(prev => ({ ...prev, isOpen: false }));
+                onClose();
+            }
+        });
+    };
 
     const handleChange = (e) => {
         setFormData({
@@ -40,8 +63,7 @@ function SignupPage() {
                 nickname: formData.nickname
             });
 
-            alert(response.data);
-            navigate('/login');
+            showAlert('회원가입 성공! 🎉', response.data, 'success', () => navigate('/login'));
         } catch (err) {
             setError(err.response?.data || '회원가입에 실패했습니다.');
         } finally {
@@ -51,6 +73,13 @@ function SignupPage() {
 
     return (
         <div className="min-h-screen bg-dark flex items-center justify-center px-6 py-12 relative overflow-hidden">
+            <AlertModal 
+                isOpen={alertState.isOpen}
+                onClose={alertState.onClose}
+                title={alertState.title}
+                message={alertState.message}
+                type={alertState.type}
+            />
             {/* Background Effects */}
             <div className="absolute inset-0">
                 <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[120px]"></div>
@@ -73,7 +102,7 @@ function SignupPage() {
                     <div className="text-center mb-8">
                         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 backdrop-blur-sm mb-4">
                             <Sparkles className="w-4 h-4 text-primary" />
-                            <span className="text-sm text-primary font-semibold">Travel Together</span>
+                            <span className="text-sm text-primary font-semibold">Podo</span>
                         </div>
                         <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
                             여행의 시작

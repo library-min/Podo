@@ -20,11 +20,15 @@ public class AuthController {
     }
 
     @PostMapping("/api/login")
-    public String login(@RequestBody Map<String, String> data) {
+    public Map<String, String> login(@RequestBody Map<String, String> data) {
         Users user = authService.login(data.get("email"), data.get("password"));
         if (user != null) {
-            return user.getNickname() + "님 환영합니다!";
+            return Map.of(
+                "email", user.getEmail(),
+                "nickname", user.getNickname(),
+                "message", user.getNickname() + "님 환영합니다!"
+            );
         }
-        return "이메일 또는 비밀번호가 틀렸습니다.";
+        throw new IllegalArgumentException("이메일 또는 비밀번호가 틀렸습니다.");
     }
 }

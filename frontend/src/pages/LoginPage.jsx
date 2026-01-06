@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Mail, Lock, Sparkles } from 'lucide-react';
 import axios from 'axios';
+import AlertModal from '../components/AlertModal';
 
 function LoginPage() {
     const navigate = useNavigate();
@@ -11,6 +12,28 @@ function LoginPage() {
     });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    
+    // Alert State
+    const [alertState, setAlertState] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'success',
+        onClose: () => {}
+    });
+
+    const showAlert = (title, message, type = 'success', onClose = () => {}) => {
+        setAlertState({
+            isOpen: true,
+            title,
+            message,
+            type,
+            onClose: () => {
+                setAlertState(prev => ({ ...prev, isOpen: false }));
+                onClose();
+            }
+        });
+    };
 
     const handleChange = (e) => {
         setFormData({
@@ -27,14 +50,15 @@ function LoginPage() {
 
         try {
             const response = await axios.post('http://localhost:8080/api/login', formData);
+            const { email, nickname, message } = response.data;
 
-            localStorage.setItem('userEmail', formData.email);
+            localStorage.setItem('userEmail', email);
+            localStorage.setItem('userNickname', nickname);
             localStorage.setItem('isLoggedIn', 'true');
 
-            alert(response.data);
-            navigate('/dashboard');
+            showAlert('환영합니다! 👋', message, 'success', () => navigate('/dashboard'));
         } catch (err) {
-            setError(err.response?.data || '이메일 또는 비밀번호가 틀렸습니다.');
+            setError(err.response?.data?.message || err.response?.data || '이메일 또는 비밀번호가 틀렸습니다.');
         } finally {
             setLoading(false);
         }
@@ -42,6 +66,14 @@ function LoginPage() {
 
     return (
         <div className="min-h-screen bg-dark flex items-center justify-center px-6 py-12 relative overflow-hidden">
+            <AlertModal 
+                isOpen={alertState.isOpen}
+                onClose={alertState.onClose}
+                title={alertState.title}
+                message={alertState.message}
+                type={alertState.type}
+            />
+
             {/* Background Effects */}
             <div className="absolute inset-0">
                 <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[120px]"></div>
@@ -64,7 +96,7 @@ function LoginPage() {
                     <div className="text-center mb-8">
                         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 backdrop-blur-sm mb-4">
                             <Sparkles className="w-4 h-4 text-primary" />
-                            <span className="text-sm text-primary font-semibold">Travel Together</span>
+                            <span className="text-sm text-primary font-semibold">Podo</span>
                         </div>
                         <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
                             다시 만나서 반가워요
