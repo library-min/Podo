@@ -33,4 +33,10 @@ public class TravelService {
     public List<Travels> getAllTravels() {
         return travelRepository.findAll();
     }
+
+    // 특정 여행 조회
+    public Travels getTravelById(Long travelId) {
+        return travelRepository.findById(travelId)
+                .orElseThrow(() -> new RuntimeException("여행을 찾을 수 없습니다."));
+    }
 }

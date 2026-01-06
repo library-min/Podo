@@ -28,4 +28,11 @@ public class TravelController {
         List<Travels> travels = travelService.getAllTravels();
         return ResponseEntity.ok(travels);
     }
+
+    // 특정 여행 조회
+    @GetMapping("/api/travels/{travelId}")
+    public ResponseEntity<Travels> getTravelById(@PathVariable Long travelId) {
+        Travels travel = travelService.getTravelById(travelId);
+        return ResponseEntity.ok(travel);
+    }
 } // 클래스 끝

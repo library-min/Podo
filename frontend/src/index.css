@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+/* Tailwind v4 커스텀 색상 정의 */
+@theme {
+  --color-primary: #8a2be2;
+  --color-dark: #0a0a0a;
+}
+
+/* 1. 기본 배경 및 글꼴 설정 */
+:root {
+  font-family: 'Pretendard', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  color-scheme: dark;
+}
+
+/* 2. 디자인 시안의 어두운 배경색 적용 */
+body {
+  margin: 0;
+  padding: 0;
+  /* 시안에 사용된 짙은 검정 배경색 */
+  background-color: #0a0a0a;
+  color: #ffffff;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* 3. 부드러운 스크롤 효과 */
+html {
+  scroll-behavior: smooth;
+}
