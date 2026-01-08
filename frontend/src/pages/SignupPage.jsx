@@ -57,7 +57,7 @@ function SignupPage() {
         }
 
         try {
-            const response = await axios.post('http://localhost:8080/api/signup', {
+            const response = await axios.post('http://localhost:8080/api/auth/signup', {
                 email: formData.email,
                 password: formData.password,
                 nickname: formData.nickname

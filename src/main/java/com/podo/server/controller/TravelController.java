@@ -1,13 +1,14 @@
 package com.podo.server.controller;
 
 import com.podo.server.dto.TravelRequest;
-import com.podo.server.entity.Travels; // 👈 추가됨
+import com.podo.server.entity.Travels;
 import com.podo.server.service.TravelService;
+import com.podo.server.repository.TravelRepository; // 👈 추가
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List; // 👈 추가됨
+import java.util.List;
 
 @CrossOrigin(origins = "http://localhost:5173")
 @RestController
@@ -15,6 +16,7 @@ import java.util.List; // 👈 추가됨
 public class TravelController {
 
     private final TravelService travelService;
+    private final TravelRepository travelRepository; // 👈 추가
 
     @PostMapping("/api/travels")
     public ResponseEntity<String> createTravel(@RequestBody com.podo.server.dto.TravelRequest request) {
@@ -55,5 +57,35 @@ public class TravelController {
     public ResponseEntity<String> joinTravel(@PathVariable Long travelId, @RequestParam String email, @RequestParam String nickname) {
         travelService.joinTravel(travelId, email, nickname);
         return ResponseEntity.ok("여행 참가 완료!");
+    }
+
+    // 여행 정보 수정
+    @PutMapping("/api/travels/{travelId}")
+    public ResponseEntity<Travels> updateTravel(@PathVariable Long travelId, @RequestBody Travels request) {
+        Travels travel = travelRepository.findById(travelId)
+                .orElseThrow(() -> new IllegalArgumentException("여행을 찾을 수 없습니다."));
+        
+        travel.setTitle(request.getTitle());
+        travel.setStartDate(request.getStartDate());
+        travel.setEndDate(request.getEndDate());
+        
+        return ResponseEntity.ok(travelRepository.save(travel));
+    }
+
+    // 여행 삭제
+    @DeleteMapping("/api/travels/{travelId}")
+    public ResponseEntity<String> deleteTravel(@PathVariable Long travelId, @RequestParam String email) {
+        Travels travel = travelRepository.findById(travelId)
+                .orElseThrow(() -> new IllegalArgumentException("여행을 찾을 수 없습니다."));
+
+        // 방장인지 확인
+        if (travel.getOwnerEmail() != null && !travel.getOwnerEmail().equals(email)) {
+            return ResponseEntity.status(403).body("방장만 여행을 삭제할 수 있습니다.");
+        }
+
+        // 실제로는 연관된 Member, Schedule 등도 삭제해야 함 (Cascade 설정 권장)
+        // 일단 DB Cascade 설정이 되어있다고 가정하거나, 에러가 나면 수동 삭제 로직 추가 필요
+        travelRepository.deleteById(travelId);
+        return ResponseEntity.ok("여행이 삭제되었습니다.");
     }
 } // 클래스 끝

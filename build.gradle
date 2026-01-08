@@ -28,6 +28,14 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web' // 👈 'webmvc' 오타 수정 (중요!)
 	implementation 'org.springframework.boot:spring-boot-starter-websocket' // 👈 이미 잘 추가하셨습니다!
 
+	// Spring Security (보안 프레임워크)
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+
+	// JWT (토큰 생성/검증 라이브러리)
+	implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
+	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'com.mysql:mysql-connector-j'
 	annotationProcessor 'org.projectlombok:lombok'

@@ -298,9 +298,9 @@ export default function Navbar() {
               <>
                 <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10">
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-white font-semibold text-sm">
-                    {userEmail.charAt(0).toUpperCase()}
+                    {(userNickname || userEmail).charAt(0).toUpperCase()}
                   </div>
-                  <span className="text-sm text-gray-300">{userEmail}</span>
+                  <span className="text-sm text-gray-300">{userNickname || userEmail}</span>
                 </div>
                 <Link
                   to="/dashboard"

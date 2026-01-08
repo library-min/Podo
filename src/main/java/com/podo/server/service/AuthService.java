@@ -2,7 +2,9 @@ package com.podo.server.service;
 
 import com.podo.server.entity.Users;
 import com.podo.server.repository.UserRepository;
+import com.podo.server.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -12,25 +14,40 @@ import java.util.Optional;
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtUtil jwtUtil;
 
     // 회원가입
     public String signup(String email, String password, String nickname) {
         if (userRepository.findByEmail(email).isPresent()) {
-            return "이미 존재하는 이메일입니다.";
+            throw new IllegalArgumentException("이미 존재하는 이메일입니다.");
         }
-        Users user = new Users(email, password, nickname);
+        // 비밀번호 암호화하여 저장
+        Users user = new Users(email, passwordEncoder.encode(password), nickname);
         userRepository.save(user);
         return "회원가입 성공!";
     }
 
-    // 로그인
-    public Users login(String email, String password) {
-        Optional<Users> user = userRepository.findByEmail(email);
+    // 로그인 (JWT 토큰과 사용자 정보 반환)
+    public Users loginAndGetUser(String email, String password) {
+        Optional<Users> userOpt = userRepository.findByEmail(email);
 
-        // 이메일이 있고 비밀번호가 일치하면 사용자 정보 반환
-        if (user.isPresent() && user.get().getPassword().equals(password)) {
-            return user.get();
+        if (userOpt.isEmpty()) {
+            throw new IllegalArgumentException("가입되지 않은 이메일입니다.");
         }
-        return null; // 로그인 실패
+
+        Users user = userOpt.get();
+
+        // 암호화된 비밀번호 검증
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new IllegalArgumentException("비밀번호가 틀렸습니다.");
+        }
+
+        return user;
+    }
+
+    // JWT 토큰 생성
+    public String generateToken(String email) {
+        return jwtUtil.generateToken(email);
     }
 }

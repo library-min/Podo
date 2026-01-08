@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link, Routes, Route, Navigate } from 'react-router-dom';
-import { ArrowLeft, Home, Package, Calendar, Users, Share2, Sparkles, X } from 'lucide-react';
+import { useParams, useNavigate, Link, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { ArrowLeft, Home, Package, Calendar, Users, Share2, Sparkles, X, BarChart2, Settings } from 'lucide-react';
 import axios from 'axios';
 import TravelHome from './TravelHome';
 import PackingList from './PackingList';
 import Schedule from './Schedule';
+import VoteManager from './VoteManager';
+import TravelSettings from './TravelSettings';
 import AlertModal from '../components/AlertModal';
 
 function TravelWorkspace() {
@@ -87,7 +89,11 @@ function TravelWorkspace() {
         { id: 'home', label: '홈', icon: Home, path: `/travel/${travelId}/home` },
         { id: 'packing', label: '패킹 리스트', icon: Package, path: `/travel/${travelId}/packing` },
         { id: 'schedule', label: '일정', icon: Calendar, path: `/travel/${travelId}/schedule` },
+        { id: 'vote', label: '투표', icon: BarChart2, path: `/travel/${travelId}/vote` },
+        { id: 'settings', label: '설정', icon: Settings, path: `/travel/${travelId}/settings` },
     ];
+
+    const location = useLocation();
 
     if (loading) {
         return (
@@ -114,6 +120,40 @@ function TravelWorkspace() {
                 type={alertState.type}
             />
 
+            {/* Top Bar */}
+            <div className="max-w-6xl mx-auto px-6 pt-8">
+                <div className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl">
+                    {/* Back Button */}
+                    <Link
+                        to="/dashboard"
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 hover:border-primary/30 transition-all group"
+                    >
+                        <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+                        <span className="font-semibold">대시보드</span>
+                    </Link>
+
+                    {/* Navigation Tabs */}
+                    <div className="flex gap-2">
+                        {tabs.map((tab) => {
+                            const Icon = tab.icon;
+                            const isActive = location.pathname.includes(tab.path);
+                            return (
+                                <Link
+                                    key={tab.id}
+                                    to={tab.path}
+                                    className={`flex items-center justify-center px-4 py-2 rounded-xl font-semibold transition-all duration-300 ${
+                                        isActive
+                                            ? 'bg-gradient-to-r from-primary to-purple-600 text-white shadow-lg shadow-primary/30'
+                                            : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white border border-white/10 hover:border-primary/30'
+                                    }`}
+                                >
+                                    <Icon className="w-5 h-5" />
+                                </Link>
+                            );
+                        })}
+                    </div>
+                </div>
+            </div>
 
             {/* Content */}
             <Routes>
@@ -121,6 +161,8 @@ function TravelWorkspace() {
                 <Route path="home" element={<TravelHome travel={travel} onUpdate={fetchTravelInfo} />} />
                 <Route path="packing" element={<PackingList travelId={travelId} />} />
                 <Route path="schedule" element={<Schedule travel={travel} />} />
+                <Route path="vote" element={<VoteManager travelId={travelId} />} />
+                <Route path="settings" element={<TravelSettings travel={travel} onUpdate={fetchTravelInfo} />} />
             </Routes>
 
             {/* Invite Modal */}

@@ -13,4 +13,7 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
     // 특정 여행에 특정 이메일의 멤버가 있는지 확인
     boolean existsByTravel_TravelIdAndEmail(Long travelId, String email);
+
+    // 이메일로 모든 멤버 조회 (닉네임 변경 시 일괄 업데이트용)
+    List<Member> findByEmail(String email);
 }

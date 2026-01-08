@@ -48,11 +48,13 @@ function MyPage() {
 
     const fetchUserInfo = async () => {
         try {
-            const response = await axios.get(`http://localhost:8080/api/users/${userEmail}`);
+            const encodedEmail = encodeURIComponent(userEmail);
+            const response = await axios.get(`http://localhost:8080/api/users/${encodedEmail}`);
             setUser(response.data);
             setNickname(response.data.nickname);
         } catch (error) {
             console.error('정보 로딩 실패:', error);
+            console.error('에러 상세:', error.response?.data);
         } finally {
             setLoading(false);
         }
@@ -71,9 +73,13 @@ function MyPage() {
 
     const handleUpdateNickname = async () => {
         try {
-            await axios.patch(`http://localhost:8080/api/users/${userEmail}`, {
+            // 이메일을 URL 인코딩하여 전송
+            const encodedEmail = encodeURIComponent(userEmail);
+            const response = await axios.patch(`http://localhost:8080/api/users/${encodedEmail}`, {
                 nickname: nickname
             });
+
+            console.log('닉네임 변경 성공:', response.data);
 
             // 로컬 스토리지 업데이트 및 알림
             localStorage.setItem('userNickname', nickname);
@@ -84,18 +90,22 @@ function MyPage() {
             });
         } catch (error) {
             console.error('업데이트 실패:', error);
-            showAlert('변경 실패', '닉네임 변경에 실패했습니다.', 'error');
+            console.error('에러 상세:', error.response?.data);
+            const errorMsg = error.response?.data || '닉네임 변경에 실패했습니다.';
+            showAlert('변경 실패', errorMsg, 'error');
         }
     };
 
     const handleDeleteAccount = async () => {
         try {
-            await axios.delete(`http://localhost:8080/api/users/${userEmail}`);
+            const encodedEmail = encodeURIComponent(userEmail);
+            await axios.delete(`http://localhost:8080/api/users/${encodedEmail}`);
 
             // 로컬 스토리지 초기화
             localStorage.removeItem('isLoggedIn');
             localStorage.removeItem('userEmail');
             localStorage.removeItem('userNickname');
+            localStorage.removeItem('token');
 
             showAlert('탈퇴 완료', '회원탈퇴가 완료되었습니다.', 'success', () => {
                 navigate('/');

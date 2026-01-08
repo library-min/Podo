@@ -27,7 +27,8 @@ public class TravelService {
                 request.getTitle(),
                 request.getStartDate(),
                 request.getEndDate(),
-                randomCode
+                randomCode,
+                creatorEmail // 방장 이메일 저장
         );
         Travels savedTravel = travelRepository.save(travel);
 

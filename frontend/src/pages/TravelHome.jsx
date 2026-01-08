@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Copy, Users, Clock, MapPin, Check, Plus, UserPlus, Trash2, Send, Home, Package, Calendar, ArrowLeft } from 'lucide-react';
+import { Copy, Users, Clock, MapPin, Check, Plus, UserPlus, Trash2, Send } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { Stomp } from '@stomp/stompjs';
@@ -19,13 +19,6 @@ function TravelHome({ travel }) {
     const [newMessage, setNewMessage] = useState('');
     const [stompClient, setStompClient] = useState(null);
     const chatEndRef = useRef(null);
-
-    // Tab navigation
-    const tabs = [
-        { id: 'home', label: '홈', icon: Home, path: `/travel/${travelId}/home` },
-        { id: 'packing', label: '패킹 리스트', icon: Package, path: `/travel/${travelId}/packing` },
-        { id: 'schedule', label: '일정', icon: Calendar, path: `/travel/${travelId}/schedule` },
-    ];
     
     // Alert State
     const [alertState, setAlertState] = useState({
@@ -196,54 +189,25 @@ function TravelHome({ travel }) {
                 type={alertState.type}
             />
 
-            {/* Top Bar */}
-            <div className="mb-6 flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl">
-                {/* Back Button */}
-                <Link
-                    to="/dashboard"
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 hover:border-primary/30 transition-all group"
-                >
-                    <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-                    <span className="font-semibold">대시보드</span>
-                </Link>
-
-                {/* Navigation Tabs */}
-                <div className="flex gap-2">
-                    {tabs.map((tab) => {
-                        const Icon = tab.icon;
-                        const isActive = window.location.pathname === tab.path;
-                        return (
-                            <Link
-                                key={tab.id}
-                                to={tab.path}
-                                className={`flex items-center justify-center px-4 py-2 rounded-xl font-semibold transition-all duration-300 ${
-                                    isActive
-                                        ? 'bg-gradient-to-r from-primary to-purple-600 text-white shadow-lg shadow-primary/30'
-                                        : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white border border-white/10 hover:border-primary/30'
-                                }`}
-                            >
-                                <Icon className="w-5 h-5" />
-                            </Link>
-                        );
-                    })}
-                </div>
-            </div>
-
-            <div className="grid lg:grid-cols-2 gap-4 items-start">
-                {/* Left Column - Chat */}
-                <div className="flex flex-col gap-4">
-                    <div className="h-[calc(100vh-240px)] rounded-2xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 flex flex-col">
+            <div className="grid lg:grid-cols-3 gap-6 items-start">
+                {/* Left Column - Chat (2/3 width) */}
+                <div className="lg:col-span-2 flex flex-col gap-4">
+                    <div className="h-[calc(100vh-280px)] rounded-3xl bg-white/5 border border-white/10 flex flex-col backdrop-blur-sm shadow-xl">
                         {/* Chat Header */}
-                        <div className="p-4 border-b border-white/10">
-                            <h3 className="text-lg font-bold text-white">채팅</h3>
+                        <div className="p-5 border-b border-white/10 flex items-center justify-between">
+                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                <Send className="w-5 h-5 text-primary" />
+                                실시간 채팅
+                            </h3>
+                            <span className="text-xs text-gray-500">대화에 참여해보세요</span>
                         </div>
 
                         {/* Messages */}
-                        <div className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-hide">
+                        <div className="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-hide">
                             {messages.length === 0 ? (
-                                <div className="text-center py-12 text-gray-500">
+                                <div className="h-full flex flex-col items-center justify-center text-gray-500 opacity-50">
+                                    <Send className="w-12 h-12 mb-3" />
                                     <p className="text-sm">아직 메시지가 없습니다</p>
-                                    <p className="text-xs mt-1">첫 메시지를 보내보세요!</p>
                                 </div>
                             ) : (
                                 messages.map((msg, index) => {
@@ -252,18 +216,18 @@ function TravelHome({ travel }) {
 
                                     return (
                                         <div key={index} className={`flex ${isMyMessage ? 'justify-end' : 'justify-start'}`}>
-                                            <div className={`max-w-[70%] ${isMyMessage ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
+                                            <div className={`max-w-[80%] ${isMyMessage ? 'items-end' : 'items-start'} flex flex-col gap-1.5`}>
                                                 {!isMyMessage && (
-                                                    <span className="text-xs text-gray-400 px-2">{msg.sender}</span>
+                                                    <span className="text-xs font-bold text-gray-400 px-2">{msg.sender}</span>
                                                 )}
-                                                <div className={`px-4 py-2 rounded-2xl ${
+                                                <div className={`px-4 py-2.5 rounded-2xl shadow-sm ${
                                                     isMyMessage
                                                         ? 'bg-gradient-to-r from-primary to-purple-600 text-white'
                                                         : 'bg-white/10 text-white'
                                                 }`}>
-                                                    <p className="text-sm break-words">{msg.message}</p>
+                                                    <p className="text-sm break-words leading-relaxed">{msg.message}</p>
                                                 </div>
-                                                <span className="text-xs text-gray-500 px-2">
+                                                <span className="text-[10px] text-gray-600 px-2">
                                                     {new Date(msg.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
                                                 </span>
                                             </div>
@@ -275,7 +239,7 @@ function TravelHome({ travel }) {
                         </div>
 
                         {/* Input */}
-                        <div className="p-4 border-t border-white/10">
+                        <div className="p-5 border-t border-white/10 bg-white/[0.02] rounded-b-3xl">
                             <div className="flex gap-2">
                                 <input
                                     type="text"
@@ -283,11 +247,11 @@ function TravelHome({ travel }) {
                                     onChange={(e) => setNewMessage(e.target.value)}
                                     onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
                                     placeholder="메시지를 입력하세요..."
-                                    className="flex-1 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-gray-500 focus:outline-none focus:border-primary/50"
+                                    className="flex-1 px-5 py-3 bg-dark/50 border border-white/10 rounded-2xl text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
                                 />
                                 <button
                                     onClick={sendMessage}
-                                    className="px-4 py-2 bg-gradient-to-r from-primary to-purple-600 rounded-xl text-white hover:shadow-lg transition-all"
+                                    className="px-6 py-3 bg-gradient-to-r from-primary to-purple-600 rounded-2xl text-white hover:shadow-lg hover:shadow-primary/30 transition-all active:scale-95"
                                 >
                                     <Send className="w-5 h-5" />
                                 </button>
@@ -296,8 +260,8 @@ function TravelHome({ travel }) {
                     </div>
                 </div>
 
-                {/* Right Column - Travel Info */}
-                <div className="flex flex-col gap-4">
+                {/* Right Column - Travel Info (1/3 width) */}
+                <div className="lg:col-span-1 flex flex-col gap-4">
                     {/* Travel Title & Dates */}
                     <div className="p-4 rounded-2xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10">
                         <h2 className="text-xl font-bold text-white mb-2">{travel.title}</h2>

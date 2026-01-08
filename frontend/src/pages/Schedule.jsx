@@ -3,11 +3,13 @@ import axios from 'axios';
 import { Plus, Trash2, MapPin, Clock } from 'lucide-react';
 import PlaceSearch from './PlaceSearch';
 import AlertModal from '../components/AlertModal';
+import DayRouteMap from './DayRouteMap';
 
 function Schedule({ travel }) {
     const [schedules, setSchedules] = useState([]);
     const [selectedDay, setSelectedDay] = useState(1);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const [isMapOpen, setIsMapOpen] = useState(false);
     
     // Alert State
     const [alertState, setAlertState] = useState({
@@ -127,7 +129,7 @@ function Schedule({ travel }) {
                 ))}
             </div>
 
-            <div className="grid lg:grid-cols-3 gap-4">
+            <div className="grid lg:grid-cols-3 gap-6">
                 {/* Schedule List - 컴팩트 */}
                 <div className="lg:col-span-2 space-y-3">
                     {schedules.map((schedule) => (
@@ -172,80 +174,100 @@ function Schedule({ travel }) {
 
                 {/* Add Schedule Form - 컴팩트 */}
                 <div className="lg:col-span-1">
-                    <div className="sticky top-32 p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl">
-                        <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                            <Plus className="w-4 h-4 text-primary" />
-                            새 일정 추가
-                        </h3>
+                    <div className="sticky top-32 space-y-4">
+                        <div className="p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl shadow-xl">
+                            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                                <Plus className="w-4 h-4 text-primary" />
+                                새 일정 추가
+                            </h3>
 
-                        <div className="space-y-3">
-                            <div>
-                                <label className="text-xs text-gray-400 mb-1 block">시간</label>
-                                <input
-                                    type="time"
-                                    value={newSchedule.time}
-                                    onChange={(e) => setNewSchedule({ ...newSchedule, time: e.target.value })}
-                                    className="w-full px-3 py-2.5 text-sm rounded-lg bg-dark border border-white/10 text-white focus:border-primary/50 outline-none"
-                                />
-                            </div>
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="text-xs text-gray-400 mb-1 block">시간</label>
+                                    <input
+                                        type="time"
+                                        value={newSchedule.time}
+                                        onChange={(e) => setNewSchedule({ ...newSchedule, time: e.target.value })}
+                                        className="w-full px-3 py-2.5 text-sm rounded-lg bg-dark border border-white/10 text-white focus:border-primary/50 outline-none"
+                                    />
+                                </div>
 
-                            <div>
-                                <label className="text-xs text-gray-400 mb-1 block">장소</label>
+                                <div>
+                                    <label className="text-xs text-gray-400 mb-1 block">장소</label>
+                                    <button
+                                        onClick={() => setIsSearchOpen(true)}
+                                        className="w-full px-3 py-2.5 text-sm rounded-lg bg-dark border border-white/10 text-left text-gray-400 hover:border-primary/50 hover:text-white transition-all flex items-center justify-between group"
+                                    >
+                                        <span className={newSchedule.placeName ? 'text-white' : ''}>
+                                            {newSchedule.placeName || '장소 검색'}
+                                        </span>
+                                        <MapPin className="w-3.5 h-3.5 group-hover:text-primary transition-colors" />
+                                    </button>
+                                    {newSchedule.address && (
+                                        <p className="text-xs text-gray-500 mt-1 ml-1 truncate">📍 {newSchedule.address}</p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label className="text-xs text-gray-400 mb-1 block">제목</label>
+                                    <input
+                                        type="text"
+                                        value={newSchedule.title}
+                                        onChange={(e) => setNewSchedule({ ...newSchedule, title: e.target.value })}
+                                        placeholder="일정 제목"
+                                        className="w-full px-3 py-2.5 text-sm rounded-lg bg-dark border border-white/10 text-white focus:border-primary/50 outline-none"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="text-xs text-gray-400 mb-1 block">유형</label>
+                                    <select
+                                        value={newSchedule.type}
+                                        onChange={(e) => setNewSchedule({ ...newSchedule, type: e.target.value })}
+                                        className="w-full px-3 py-2.5 text-sm rounded-lg bg-dark border border-white/10 text-white focus:border-primary/50 outline-none"
+                                    >
+                                        <option value="activity">활동</option>
+                                        <option value="meal">식사</option>
+                                        <option value="travel">이동</option>
+                                        <option value="accommodation">숙소</option>
+                                    </select>
+                                </div>
+
                                 <button
-                                    onClick={() => setIsSearchOpen(true)}
-                                    className="w-full px-3 py-2.5 text-sm rounded-lg bg-dark border border-white/10 text-left text-gray-400 hover:border-primary/50 hover:text-white transition-all flex items-center justify-between group"
+                                    onClick={addSchedule}
+                                    className="w-full py-3 text-sm rounded-lg bg-gradient-to-r from-primary to-purple-600 text-white font-bold hover:shadow-lg hover:shadow-primary/30 transition-all mt-2 active:scale-95"
                                 >
-                                    <span className={newSchedule.placeName ? 'text-white' : ''}>
-                                        {newSchedule.placeName || '장소 검색'}
-                                    </span>
-                                    <MapPin className="w-3.5 h-3.5 group-hover:text-primary transition-colors" />
+                                    일정 추가하기
                                 </button>
-                                {newSchedule.address && (
-                                    <p className="text-xs text-gray-500 mt-1 ml-1 truncate">📍 {newSchedule.address}</p>
-                                )}
                             </div>
-
-                            <div>
-                                <label className="text-xs text-gray-400 mb-1 block">제목</label>
-                                <input
-                                    type="text"
-                                    value={newSchedule.title}
-                                    onChange={(e) => setNewSchedule({ ...newSchedule, title: e.target.value })}
-                                    placeholder="일정 제목"
-                                    className="w-full px-3 py-2.5 text-sm rounded-lg bg-dark border border-white/10 text-white focus:border-primary/50 outline-none"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="text-xs text-gray-400 mb-1 block">유형</label>
-                                <select
-                                    value={newSchedule.type}
-                                    onChange={(e) => setNewSchedule({ ...newSchedule, type: e.target.value })}
-                                    className="w-full px-3 py-2.5 text-sm rounded-lg bg-dark border border-white/10 text-white focus:border-primary/50 outline-none"
-                                >
-                                    <option value="activity">활동</option>
-                                    <option value="meal">식사</option>
-                                    <option value="travel">이동</option>
-                                    <option value="accommodation">숙소</option>
-                                </select>
-                            </div>
-
-                            <button
-                                onClick={addSchedule}
-                                className="w-full py-3 text-sm rounded-lg bg-gradient-to-r from-primary to-purple-600 text-white font-bold hover:shadow-lg hover:shadow-primary/30 transition-all mt-2"
-                            >
-                                일정 추가하기
-                            </button>
                         </div>
+
+                        {/* 지도 보기 버튼을 일정 추가 폼 바로 아래로 이동 */}
+                        <button
+                            onClick={() => setIsMapOpen(true)}
+                            className="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-white px-4 py-3.5 rounded-2xl border border-white/10 transition-all text-sm font-bold shadow-lg group"
+                        >
+                            <span className="group-hover:scale-110 transition-transform">🗺️</span>
+                            지도로 동선 보기
+                        </button>
                     </div>
                 </div>
             </div>
 
             {/* Place Search Modal */}
             {isSearchOpen && (
-                <PlaceSearch 
-                    onClose={() => setIsSearchOpen(false)} 
-                    onSelect={handlePlaceSelect} 
+                <PlaceSearch
+                    onClose={() => setIsSearchOpen(false)}
+                    onSelect={handlePlaceSelect}
+                />
+            )}
+
+            {/* 동선 지도 모달 */}
+            {isMapOpen && (
+                <DayRouteMap
+                    schedules={schedules}
+                    onClose={() => setIsMapOpen(false)}
+                    selectedDay={selectedDay}
                 />
             )}
         </div>

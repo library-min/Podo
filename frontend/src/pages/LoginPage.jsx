@@ -49,16 +49,18 @@ function LoginPage() {
         setError('');
 
         try {
-            const response = await axios.post('http://localhost:8080/api/login', formData);
-            const { email, nickname, message } = response.data;
+            const response = await axios.post('http://localhost:8080/api/auth/login', formData);
+            const { token, email, nickname } = response.data;
 
+            // 토큰과 사용자 정보를 로컬 스토리지에 저장
+            localStorage.setItem('token', token);
             localStorage.setItem('userEmail', email);
             localStorage.setItem('userNickname', nickname);
             localStorage.setItem('isLoggedIn', 'true');
 
-            showAlert('환영합니다! 👋', message, 'success', () => navigate('/dashboard'));
+            showAlert('환영합니다! 👋', `${nickname}님, 로그인에 성공했습니다!`, 'success', () => navigate('/dashboard'));
         } catch (err) {
-            setError(err.response?.data?.message || err.response?.data || '이메일 또는 비밀번호가 틀렸습니다.');
+            setError(err.response?.data || '이메일 또는 비밀번호가 틀렸습니다.');
         } finally {
             setLoading(false);
         }

@@ -3,11 +3,12 @@ package com.podo.server.entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter; // 👈 추가
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Getter
+@Getter @Setter // 👈 추가
 @NoArgsConstructor
 @Table(name = "travels")
 public class Travels {
@@ -31,13 +32,17 @@ public class Travels {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+    
+    @Column(name = "owner_email")
+    private String ownerEmail; // 방장(생성자) 이메일
 
     // 👇 [추가된 부분] 생성자: 이걸 만들어야 Service에서 데이터를 넣을 수 있습니다!
-    public Travels(String title, LocalDate startDate, LocalDate endDate, String inviteCode) {
+    public Travels(String title, LocalDate startDate, LocalDate endDate, String inviteCode, String ownerEmail) {
         this.title = title;
         this.startDate = startDate;
         this.endDate = endDate;
         this.inviteCode = inviteCode;
+        this.ownerEmail = ownerEmail;
         this.createdAt = LocalDateTime.now(); // 생성 시간은 현재 시간으로 자동 설정
     }
 }

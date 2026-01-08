@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Entity
 @Getter @Setter
@@ -15,8 +16,12 @@ public class Item {
 
     private String name;        // 물건 이름
     private String category;    // 👈 추가됨! (음식, 장비 등)
+    
+    @JsonProperty("isChecked")
     private boolean isChecked;  // 체크 여부
-    private String checker;     // 담당자 닉네임
+    
+    private String checker;     // 완료한 사람
+    private String assignee;    // 담당자 (챙겨올 사람)
 
     @ManyToOne
     @JoinColumn(name = "travel_id")
