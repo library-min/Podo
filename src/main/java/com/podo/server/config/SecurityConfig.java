@@ -28,7 +28,13 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable()) // API 서버라 CSRF 보안 끄기
             .cors(cors -> cors.configurationSource(corsConfigurationSource())) // 리액트와 통신 허용
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**", "/ws-stomp/**").permitAll() // 로그인, 회원가입, 소켓은 누구나 가능
+                // 인증 없이 접근 가능한 경로들
+                .requestMatchers("/api/auth/**", "/ws-stomp/**").permitAll() // 로그인, 회원가입, 소켓
+                .requestMatchers(
+                    "/v3/api-docs/**",      // OpenAPI 3.0 문서
+                    "/swagger-ui/**",       // Swagger UI 리소스
+                    "/swagger-ui.html"      // Swagger UI 메인 페이지
+                ).permitAll()
                 // .anyRequest().authenticated() // 🚨 주의: 이걸 켜면 로그인 안한 사람은 아무것도 못함 (일단 주석 처리 추천)
                 .anyRequest().permitAll() // 개발 중엔 편하게 다 열어두기 (나중에 위 줄로 교체)
             );

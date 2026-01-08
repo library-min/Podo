@@ -4,12 +4,16 @@ import com.podo.server.dto.TravelRequest;
 import com.podo.server.entity.Travels;
 import com.podo.server.service.TravelService;
 import com.podo.server.repository.TravelRepository; // 👈 추가
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "여행 관리", description = "여행 생성, 조회, 참가 등 여행 관련 API")
 @CrossOrigin(origins = "http://localhost:5173")
 @RestController
 @RequiredArgsConstructor
@@ -18,36 +22,43 @@ public class TravelController {
     private final TravelService travelService;
     private final TravelRepository travelRepository; // 👈 추가
 
+    @Operation(summary = "여행 생성", description = "새로운 여행 방을 생성합니다. 생성자는 자동으로 멤버로 추가됩니다.")
     @PostMapping("/api/travels")
     public ResponseEntity<String> createTravel(@RequestBody com.podo.server.dto.TravelRequest request) {
         Long travelId = travelService.createTravel(request, request.getCreatorEmail(), request.getCreatorName());
         return ResponseEntity.ok("여행 방 생성 완료! ID: " + travelId);
     }
 
-    // 내 여행 목록 조회
+    @Operation(summary = "내 여행 목록 조회", description = "특정 사용자가 참여 중인 모든 여행을 조회합니다.")
     @GetMapping("/api/travels/my")
-    public ResponseEntity<List<Travels>> getMyTravels(@RequestParam String email) {
+    public ResponseEntity<List<Travels>> getMyTravels(
+        @Parameter(description = "사용자 이메일", required = true)
+        @RequestParam String email) {
         List<Travels> travels = travelService.getMyTravels(email);
         return ResponseEntity.ok(travels);
     }
 
-    // 전체 여행 조회 (관리자용 또는 디버깅용으로 남겨둠)
+    @Operation(summary = "전체 여행 조회", description = "모든 여행을 조회합니다 (관리자용)")
     @GetMapping("/api/travels")
     public ResponseEntity<List<Travels>> getAllTravels() {
         List<Travels> travels = travelService.getAllTravels();
         return ResponseEntity.ok(travels);
     }
 
-    // 특정 여행 조회
+    @Operation(summary = "여행 상세 조회", description = "특정 여행의 상세 정보를 조회합니다.")
     @GetMapping("/api/travels/{travelId}")
-    public ResponseEntity<Travels> getTravelById(@PathVariable Long travelId) {
+    public ResponseEntity<Travels> getTravelById(
+        @Parameter(description = "여행 ID", required = true)
+        @PathVariable Long travelId) {
         Travels travel = travelService.getTravelById(travelId);
         return ResponseEntity.ok(travel);
     }
 
-    // 초대코드로 여행 조회
+    @Operation(summary = "초대코드로 여행 조회", description = "초대코드를 사용하여 여행 정보를 조회합니다.")
     @GetMapping("/api/travels/code/{inviteCode}")
-    public ResponseEntity<Travels> getTravelByInviteCode(@PathVariable String inviteCode) {
+    public ResponseEntity<Travels> getTravelByInviteCode(
+        @Parameter(description = "초대 코드", required = true)
+        @PathVariable String inviteCode) {
         Travels travel = travelService.getTravelByInviteCode(inviteCode);
         return ResponseEntity.ok(travel);
     }
@@ -57,6 +68,12 @@ public class TravelController {
     public ResponseEntity<String> joinTravel(@PathVariable Long travelId, @RequestParam String email, @RequestParam String nickname) {
         travelService.joinTravel(travelId, email, nickname);
         return ResponseEntity.ok("여행 참가 완료!");
+    }
+
+    // 통계 조회 API
+    @GetMapping("/api/travels/stats")
+    public ResponseEntity<com.podo.server.dto.StatsResponse> getStats(@RequestParam String email) {
+        return ResponseEntity.ok(travelService.getStats(email));
     }
 
     // 여행 정보 수정

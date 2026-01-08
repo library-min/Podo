@@ -1,5 +1,6 @@
 package com.podo.server.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -20,6 +21,7 @@ public class Vote {
 
     @ManyToOne
     @JoinColumn(name = "travel_id")
+    @JsonIgnoreProperties({"members", "schedules"})
     private Travels travel;
 
     // 선택지들 (짜장, 짬뽕...)

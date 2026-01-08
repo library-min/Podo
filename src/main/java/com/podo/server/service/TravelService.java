@@ -19,6 +19,7 @@ public class TravelService {
     private final TravelRepository travelRepository;
     private final MemberRepository memberRepository;
     private final com.podo.server.repository.UserRepository userRepository;
+    private final com.podo.server.repository.ScheduleRepository scheduleRepository; // 👈 주입 추가
 
     @Transactional
     public Long createTravel(TravelRequest request, String creatorEmail, String creatorName) {
@@ -87,5 +88,35 @@ public class TravelService {
             user.addTravel(travel);
             userRepository.save(user);
         });
+    }
+
+    // 통계 조회
+    public com.podo.server.dto.StatsResponse getStats(String email) {
+        // 1. 월별 여행 빈도 (Java에서 집계)
+        List<Travels> myTravels = getMyTravels(email);
+        java.util.Map<Integer, Long> monthlyCounts = myTravels.stream()
+                .collect(java.util.stream.Collectors.groupingBy(
+                        t -> t.getStartDate().getMonthValue(),
+                        java.util.stream.Collectors.counting()
+                ));
+
+        List<com.podo.server.dto.StatsResponse.ChartData> monthlyData = new java.util.ArrayList<>();
+        for (int i = 1; i <= 12; i++) {
+            monthlyData.add(new com.podo.server.dto.StatsResponse.ChartData(
+                    i + "월",
+                    monthlyCounts.getOrDefault(i, 0L)
+            ));
+        }
+
+        // 2. 일정 유형 분포 (DB 쿼리)
+        List<Object[]> typeCounts = scheduleRepository.countTypesByMemberEmail(email);
+        List<com.podo.server.dto.StatsResponse.ChartData> typeData = typeCounts.stream()
+                .map(row -> new com.podo.server.dto.StatsResponse.ChartData(
+                        (String) row[0],
+                        (Long) row[1]
+                ))
+                .collect(java.util.stream.Collectors.toList());
+
+        return new com.podo.server.dto.StatsResponse(monthlyData, typeData);
     }
 }

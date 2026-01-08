@@ -50,12 +50,13 @@ function LoginPage() {
 
         try {
             const response = await axios.post('http://localhost:8080/api/auth/login', formData);
-            const { token, email, nickname } = response.data;
+            const { token, email, nickname, role } = response.data;
 
             // 토큰과 사용자 정보를 로컬 스토리지에 저장
             localStorage.setItem('token', token);
             localStorage.setItem('userEmail', email);
             localStorage.setItem('userNickname', nickname);
+            localStorage.setItem('userRole', role); // 권한 정보 저장
             localStorage.setItem('isLoggedIn', 'true');
 
             showAlert('환영합니다! 👋', `${nickname}님, 로그인에 성공했습니다!`, 'success', () => navigate('/dashboard'));
@@ -67,7 +68,7 @@ function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen bg-dark flex items-center justify-center px-6 py-12 relative overflow-hidden">
+        <div className="min-h-screen bg-transparent flex items-center justify-center px-6 py-12 relative overflow-hidden">
             <AlertModal 
                 isOpen={alertState.isOpen}
                 onClose={alertState.onClose}
@@ -75,12 +76,6 @@ function LoginPage() {
                 message={alertState.message}
                 type={alertState.type}
             />
-
-            {/* Background Effects */}
-            <div className="absolute inset-0">
-                <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[120px]"></div>
-                <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-[120px]"></div>
-            </div>
 
             <div className="relative w-full max-w-md">
                 {/* Back to Home Button */}

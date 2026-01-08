@@ -1,5 +1,6 @@
 package com.podo.server.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -19,14 +20,17 @@ public class VoteRecord {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "vote_id")
+    @JsonIgnore
     private Vote vote;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
+    @JsonIgnore
     private Users user;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "option_id")
+    @JsonIgnore
     private VoteOption selectedOption;
 
     public VoteRecord(Vote vote, Users user, VoteOption selectedOption) {

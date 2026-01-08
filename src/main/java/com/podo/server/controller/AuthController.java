@@ -32,6 +32,7 @@ public class AuthController {
         response.put("token", token);
         response.put("email", user.getEmail());
         response.put("nickname", user.getNickname());
+        response.put("role", user.getRole().name()); // 권한 정보 추가
 
         return response;
     }

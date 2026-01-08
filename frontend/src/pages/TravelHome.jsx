@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { Copy, Users, Clock, MapPin, Check, Plus, UserPlus, Trash2, Send } from 'lucide-react';
+import { Copy, Users, Clock, MapPin, Check, Plus, UserPlus, Trash2, Send, Image as ImageIcon, X } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { Stomp } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import AlertModal from '../components/AlertModal';
+import PresenceAvatars from './PresenceAvatars';
 
 function TravelHome({ travel }) {
     const { travelId } = useParams();
@@ -14,11 +15,16 @@ function TravelHome({ travel }) {
     const [showAddMember, setShowAddMember] = useState(false);
     const [newMember, setNewMember] = useState({ email: '' });
 
+    // 현재 사용자 닉네임 가져오기 (없으면 이메일 아이디 부분 사용)
+    const currentUser = localStorage.getItem('userNickname') || localStorage.getItem('userEmail')?.split('@')[0] || 'Guest';
+
     // Chat State
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
+    const [selectedFile, setSelectedFile] = useState(null); // 👈 선택된 파일 상태
     const [stompClient, setStompClient] = useState(null);
-    const chatEndRef = useRef(null);
+    const chatContainerRef = useRef(null);
+    const fileInputRef = useRef(null);
     
     // Alert State
     const [alertState, setAlertState] = useState({
@@ -74,7 +80,7 @@ function TravelHome({ travel }) {
             client.subscribe(`/topic/chat/${travel.travelId}`, (message) => {
                 const chatMessage = JSON.parse(message.body);
                 setMessages(prev => {
-                    // 중복 메시지 방지 (ID 또는 timestamp + sender로 체크)
+                    // 중복 메시지 방지
                     const isDuplicate = prev.some(msg =>
                         msg.id === chatMessage.id ||
                         (msg.timestamp === chatMessage.timestamp && msg.sender === chatMessage.sender && msg.message === chatMessage.message)
@@ -96,7 +102,12 @@ function TravelHome({ travel }) {
 
     // 채팅 메시지가 추가될 때마다 스크롤을 맨 아래로
     useEffect(() => {
-        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        if (chatContainerRef.current) {
+            chatContainerRef.current.scrollTo({
+                top: chatContainerRef.current.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
     }, [messages]);
 
     const fetchMembers = async () => {
@@ -158,25 +169,63 @@ function TravelHome({ travel }) {
         }
     };
 
-    const sendMessage = () => {
-        if (!newMessage.trim() || !stompClient || !stompClient.connected) return;
+    // 1. 파일 선택 핸들러 (업로드 X, 상태 저장 O)
+    const handleFileSelect = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setSelectedFile(file);
+        }
+        e.target.value = ''; // 같은 파일 다시 선택 가능하게 초기화
+    };
+
+    // 2. 메시지 전송 핸들러 (텍스트 + 이미지)
+    const sendMessage = async () => {
+        // 메시지 전송 로직은 HTTP API를 사용하므로 소켓 연결 여부와 상관없이 전송 시도
+        if (!newMessage.trim() && !selectedFile) return;
 
         const userEmail = localStorage.getItem('userEmail');
         const userNickname = localStorage.getItem('userNickname');
         const senderName = userNickname || (userEmail ? userEmail.split('@')[0] : 'Unknown');
 
-        const chatMessage = {
-            travelId: travel.travelId,
-            sender: senderName,
-            message: newMessage.trim()
-        };
+        try {
+            // A. 이미지가 있다면 먼저 업로드 후 전송
+            if (selectedFile) {
+                const formData = new FormData();
+                formData.append('file', selectedFile);
 
-        // 서버로 메시지 전송 (WebSocket 브로드캐스트만 사용)
-        axios.post(`http://localhost:8080/api/chat/${travel.travelId}`, chatMessage)
-            .then(() => {
-                setNewMessage('');
-            })
-            .catch(err => console.error('메시지 전송 실패:', err));
+                const res = await axios.post(`http://localhost:8080/api/chat/upload`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+
+                const imageUrl = res.data;
+                const imageMessage = {
+                    travelId: travel.travelId,
+                    sender: senderName,
+                    message: imageUrl,
+                    type: 'IMAGE'
+                };
+                await axios.post(`http://localhost:8080/api/chat/${travel.travelId}`, imageMessage);
+            }
+
+            // B. 텍스트가 있다면 전송
+            if (newMessage.trim()) {
+                const textMessage = {
+                    travelId: travel.travelId,
+                    sender: senderName,
+                    message: newMessage.trim(),
+                    type: 'TEXT'
+                };
+                await axios.post(`http://localhost:8080/api/chat/${travel.travelId}`, textMessage);
+            }
+
+            // 초기화
+            setNewMessage('');
+            setSelectedFile(null);
+
+        } catch (error) {
+            console.error('메시지 전송 실패:', error);
+            showAlert('오류', '메시지 전송 중 문제가 발생했습니다.', 'error');
+        }
     };
 
     return (
@@ -199,11 +248,14 @@ function TravelHome({ travel }) {
                                 <Send className="w-5 h-5 text-primary" />
                                 실시간 채팅
                             </h3>
-                            <span className="text-xs text-gray-500">대화에 참여해보세요</span>
+                            <PresenceAvatars travelId={travel.travelId} currentUser={currentUser} />
                         </div>
 
                         {/* Messages */}
-                        <div className="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-hide">
+                        <div 
+                            ref={chatContainerRef}
+                            className="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-hide"
+                        >
                             {messages.length === 0 ? (
                                 <div className="h-full flex flex-col items-center justify-center text-gray-500 opacity-50">
                                     <Send className="w-12 h-12 mb-3" />
@@ -220,12 +272,21 @@ function TravelHome({ travel }) {
                                                 {!isMyMessage && (
                                                     <span className="text-xs font-bold text-gray-400 px-2">{msg.sender}</span>
                                                 )}
-                                                <div className={`px-4 py-2.5 rounded-2xl shadow-sm ${
+                                                <div className={`px-4 py-2.5 rounded-2xl shadow-sm ${ 
                                                     isMyMessage
                                                         ? 'bg-gradient-to-r from-primary to-purple-600 text-white'
                                                         : 'bg-white/10 text-white'
-                                                }`}>
-                                                    <p className="text-sm break-words leading-relaxed">{msg.message}</p>
+                                                }`}> 
+                                                    {msg.type === 'IMAGE' ? (
+                                                        <img 
+                                                            src={msg.message} 
+                                                            alt="Chat Attachment" 
+                                                            className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                                                            onClick={() => window.open(msg.message, '_blank')}
+                                                        />
+                                                    ) : (
+                                                        <p className="text-sm break-words leading-relaxed">{msg.message}</p>
+                                                    )}
                                                 </div>
                                                 <span className="text-[10px] text-gray-600 px-2">
                                                     {new Date(msg.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
@@ -235,23 +296,64 @@ function TravelHome({ travel }) {
                                     );
                                 })
                             )}
-                            <div ref={chatEndRef} />
                         </div>
+
+                        {/* Image Preview Area */}
+                        {selectedFile && (
+                            <div className="px-5 pt-3 bg-white/[0.02]">
+                                <div className="relative inline-block">
+                                    <img 
+                                        src={URL.createObjectURL(selectedFile)} 
+                                        alt="Preview" 
+                                        className="h-20 rounded-xl border border-white/10 shadow-lg object-cover"
+                                    />
+                                    <button 
+                                        onClick={() => setSelectedFile(null)}
+                                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full text-white flex items-center justify-center hover:bg-red-600 transition-colors shadow-md"
+                                    >
+                                        <X className="w-3 h-3" />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Input */}
                         <div className="p-5 border-t border-white/10 bg-white/[0.02] rounded-b-3xl">
                             <div className="flex gap-2">
+                                {/* Hidden File Input */}
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    onChange={handleFileSelect}
+                                    accept="image/*"
+                                    className="hidden"
+                                />
+                                
+                                {/* Image Button */}
+                                <button
+                                    onClick={() => fileInputRef.current.click()}
+                                    className={`px-4 rounded-2xl border transition-all ${ 
+                                        selectedFile 
+                                        ? 'bg-primary/20 border-primary text-primary' 
+                                        : 'bg-white/5 border-white/10 text-gray-400 hover:text-white hover:bg-white/10'
+                                    }`}
+                                    title="사진 첨부"
+                                >
+                                    <ImageIcon className="w-5 h-5" />
+                                </button>
+
                                 <input
                                     type="text"
                                     value={newMessage}
                                     onChange={(e) => setNewMessage(e.target.value)}
                                     onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                                    placeholder="메시지를 입력하세요..."
+                                    placeholder={selectedFile ? "사진과 함께 보낼 메시지 (선택)" : "메시지를 입력하세요..."}
                                     className="flex-1 px-5 py-3 bg-dark/50 border border-white/10 rounded-2xl text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
                                 />
                                 <button
                                     onClick={sendMessage}
-                                    className="px-6 py-3 bg-gradient-to-r from-primary to-purple-600 rounded-2xl text-white hover:shadow-lg hover:shadow-primary/30 transition-all active:scale-95"
+                                    className="px-6 py-3 bg-gradient-to-r from-primary to-purple-600 rounded-2xl text-white hover:shadow-lg hover:shadow-primary/30 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    disabled={!newMessage.trim() && !selectedFile}
                                 >
                                     <Send className="w-5 h-5" />
                                 </button>
@@ -268,20 +370,30 @@ function TravelHome({ travel }) {
                         <p className="text-sm text-gray-400">{travel.startDate} ~ {travel.endDate}</p>
                     </div>
 
-                    {/* D-Day Counter */}
-                    <div className="p-4 rounded-2xl bg-gradient-to-br from-primary/20 via-purple-600/20 to-pink-600/10 border border-primary/30">
-                        <div className="text-center">
+                    {/* D-Day Counter - Simple & Modern */}
+                    <div className="flex items-center justify-between p-6 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                                <Clock className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">D-Day</h3>
+                                <p className="text-white font-medium">여행 시작까지</p>
+                            </div>
+                        </div>
+                        
+                        <div className="text-right">
                             {dDay > 0 ? (
-                                <span className="text-3xl font-bold bg-gradient-to-r from-primary via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                                    Day -{dDay}
+                                <span className="text-4xl font-black text-white tracking-tight">
+                                    D-{dDay}
                                 </span>
                             ) : dDay === 0 ? (
-                                <span className="text-2xl font-bold text-primary animate-pulse">
-                                    오늘이에요! 🎉
+                                <span className="text-3xl font-black text-primary animate-pulse">
+                                    D-Day 🎉
                                 </span>
                             ) : (
-                                <span className="text-2xl font-bold text-gray-400">
-                                    종료됨
+                                <span className="text-2xl font-bold text-gray-500">
+                                    종료
                                 </span>
                             )}
                         </div>
@@ -317,7 +429,7 @@ function TravelHome({ travel }) {
                                                 {member.name.charAt(0)}
                                             </div>
                                             <div
-                                                className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-dark ${
+                                                className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-dark ${ 
                                                     member.online ? 'bg-green-500' : 'bg-gray-500'
                                                 }`}
                                             ></div>

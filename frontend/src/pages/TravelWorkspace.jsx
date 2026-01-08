@@ -8,6 +8,8 @@ import Schedule from './Schedule';
 import VoteManager from './VoteManager';
 import TravelSettings from './TravelSettings';
 import AlertModal from '../components/AlertModal';
+import PresenceAvatars from './PresenceAvatars';
+import StarryBackground from '../components/StarryBackground';
 
 function TravelWorkspace() {
     const { travelId } = useParams();
@@ -17,6 +19,9 @@ function TravelWorkspace() {
     const [activeTab, setActiveTab] = useState('home');
     const [inviteModalOpen, setInviteModalOpen] = useState(false);
     const [inviteEmail, setInviteEmail] = useState('');
+    
+    // 현재 사용자 닉네임 가져오기 (없으면 이메일 아이디 부분 사용)
+    const currentUser = localStorage.getItem('userNickname') || localStorage.getItem('userEmail')?.split('@')[0] || 'Guest';
 
     // Alert State
     const [alertState, setAlertState] = useState({
@@ -111,7 +116,7 @@ function TravelWorkspace() {
     }
 
     return (
-        <div className="min-h-screen bg-dark relative">
+        <div className="min-h-screen bg-transparent relative">
             <AlertModal 
                 isOpen={alertState.isOpen}
                 onClose={alertState.onClose}
@@ -120,43 +125,90 @@ function TravelWorkspace() {
                 type={alertState.type}
             />
 
-            {/* Top Bar */}
-            <div className="max-w-6xl mx-auto px-6 pt-8">
-                <div className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl">
-                    {/* Back Button */}
-                    <Link
-                        to="/dashboard"
-                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 hover:border-primary/30 transition-all group"
-                    >
-                        <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-                        <span className="font-semibold">대시보드</span>
-                    </Link>
+                                    {/* Top Bar - Sticky Header */}
 
-                    {/* Navigation Tabs */}
-                    <div className="flex gap-2">
-                        {tabs.map((tab) => {
-                            const Icon = tab.icon;
-                            const isActive = location.pathname.includes(tab.path);
-                            return (
-                                <Link
-                                    key={tab.id}
-                                    to={tab.path}
-                                    className={`flex items-center justify-center px-4 py-2 rounded-xl font-semibold transition-all duration-300 ${
-                                        isActive
-                                            ? 'bg-gradient-to-r from-primary to-purple-600 text-white shadow-lg shadow-primary/30'
-                                            : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white border border-white/10 hover:border-primary/30'
-                                    }`}
-                                >
-                                    <Icon className="w-5 h-5" />
-                                </Link>
-                            );
-                        })}
-                    </div>
-                </div>
-            </div>
+                                    <div className="sticky top-0 z-50 w-full overflow-hidden mb-4 bg-black">
+                                        <StarryBackground />
 
-            {/* Content */}
-            <Routes>
+                                        <div className="relative z-10 max-w-6xl mx-auto px-6 py-4">
+
+                                            <div className="flex items-center justify-between p-2 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md">
+
+                                                {/* Back Button */}
+
+                                                <Link
+
+                                                    to="/dashboard"
+
+                                                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 hover:border-primary/30 transition-all group"
+
+                                                >
+
+                                                    <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+
+                                                    <span className="hidden sm:inline font-semibold text-sm">대시보드</span>
+
+                                                </Link>
+
+                        
+
+                                                {/* Navigation Tabs */}
+
+                                                <div className="flex gap-1 sm:gap-2">
+
+                                                    {tabs.map((tab) => {
+
+                                                        const Icon = tab.icon;
+
+                                                        const isActive = location.pathname.includes(tab.path);
+
+                                                        return (
+
+                                                            <Link
+
+                                                                key={tab.id}
+
+                                                                to={tab.path}
+
+                                                                className={`flex items-center justify-center p-2.5 sm:px-4 sm:py-2 rounded-xl font-semibold transition-all duration-300 ${
+
+                                                                    isActive
+
+                                                                        ? 'bg-gradient-to-r from-primary to-purple-600 text-white shadow-lg shadow-primary/30'
+
+                                                                        : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white border border-white/10 hover:border-primary/30'
+
+                                                                }`}
+
+                                                                title={tab.label}
+
+                                                            >
+
+                                                                <Icon className="w-5 h-5" />
+
+                                                                <span className="hidden md:inline ml-2 text-sm">{tab.label}</span>
+
+                                                            </Link>
+
+                                                        );
+
+                                                    })}
+
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                        
+
+                                    {/* Content Container (Added max-w and center alignment) */}
+
+                                    <div className="max-w-6xl mx-auto">
+
+                                        <Routes>
                 <Route index element={<Navigate to={`/travel/${travelId}/home`} replace />} />
                 <Route path="home" element={<TravelHome travel={travel} onUpdate={fetchTravelInfo} />} />
                 <Route path="packing" element={<PackingList travelId={travelId} />} />
@@ -164,6 +216,7 @@ function TravelWorkspace() {
                 <Route path="vote" element={<VoteManager travelId={travelId} />} />
                 <Route path="settings" element={<TravelSettings travel={travel} onUpdate={fetchTravelInfo} />} />
             </Routes>
+            </div>
 
             {/* Invite Modal */}
             {inviteModalOpen && (

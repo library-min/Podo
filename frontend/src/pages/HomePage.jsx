@@ -5,7 +5,7 @@ import Footer from '../components/Footer';
 function HomePage() {
   return (
     <>
-      <div className="bg-dark">
+      <div className="bg-transparent">
         <Navbar />
         <Hero />
       </div>

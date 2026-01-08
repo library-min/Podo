@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Plus, Calendar, Copy, MapPin, UserPlus, X } from 'lucide-react';
+import { Plus, Calendar, Copy, MapPin, UserPlus, X, Shield, BarChart2, PieChart as PieChartIcon } from 'lucide-react';
 import axios from 'axios';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import Navbar from '../components/Navbar';
 import AlertModal from '../components/AlertModal';
 
@@ -11,7 +12,12 @@ function DashboardPage() {
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [travels, setTravels] = useState([]);
+    const [stats, setStats] = useState({ monthlyTravels: [], scheduleTypes: [] }); // 👈 통계 상태 추가
     const [userEmail, setUserEmail] = useState('');
+    const [userRole, setUserRole] = useState('');
+
+    // Chart Colors (Aurora Theme)
+    const COLORS = ['#a78bfa', '#c084fc', '#818cf8', '#60a5fa', '#34d399', '#f472b6'];
 
     // Modal States
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -41,6 +47,7 @@ function DashboardPage() {
     useEffect(() => {
         const isLoggedIn = localStorage.getItem('isLoggedIn');
         const email = localStorage.getItem('userEmail');
+        const role = localStorage.getItem('userRole');
 
         if (!isLoggedIn || !email) {
             navigate('/login');
@@ -48,7 +55,9 @@ function DashboardPage() {
         }
 
         setUserEmail(email);
+        setUserRole(role || 'USER');
         fetchTravels(email);
+        fetchStats(email); // 👈 통계 조회 추가
     }, [navigate]);
 
     const fetchTravels = (emailArg) => {
@@ -60,6 +69,17 @@ function DashboardPage() {
                 setTravels(res.data);
             })
             .catch(err => console.error('목록 로딩 에러:', err));
+    };
+
+    const fetchStats = (emailArg) => {
+        const targetEmail = emailArg || userEmail;
+        if (!targetEmail) return;
+
+        axios.get(`http://localhost:8080/api/travels/stats?email=${targetEmail}`)
+            .then(res => {
+                setStats(res.data);
+            })
+            .catch(err => console.error('통계 로딩 에러:', err));
     };
 
     const createTravel = () => {
@@ -86,6 +106,7 @@ function DashboardPage() {
                 setEndDate('');
                 setShowCreateModal(false);
                 fetchTravels(userEmail);
+                fetchStats(userEmail); // 통계 갱신
             })
             .catch(err => console.error('생성 에러:', err));
     };
@@ -122,6 +143,7 @@ function DashboardPage() {
                 setInviteCode('');
                 setPreviewTravel(null);
                 fetchTravels(userEmail);
+                fetchStats(userEmail); // 통계 갱신
             })
             .catch(err => {
                 console.error('참가 실패:', err);
@@ -134,8 +156,23 @@ function DashboardPage() {
         showAlert('복사 완료', '초대 코드가 복사되었습니다!');
     };
 
+    // Custom Tooltip for Charts
+    const CustomTooltip = ({ active, payload, label }) => {
+        if (active && payload && payload.length) {
+            return (
+                <div className="bg-black/80 border border-white/10 p-3 rounded-lg shadow-xl backdrop-blur-md">
+                    <p className="text-white font-bold text-sm mb-1">{label}</p>
+                    <p className="text-primary text-sm">
+                        {payload[0].value} {payload[0].name === 'value' ? '회' : '건'}
+                    </p>
+                </div>
+            );
+        }
+        return null;
+    };
+
     return (
-        <div className="min-h-screen bg-dark">
+        <div className="min-h-screen bg-transparent">
             <Navbar />
             <AlertModal 
                 isOpen={alertState.isOpen}
@@ -147,26 +184,40 @@ function DashboardPage() {
 
             {/* Main Content */}
             <div className="max-w-7xl mx-auto px-6 pt-32 pb-12">
+                
                 {/* Action Buttons - Compact */}
                 <div className="mb-8 flex justify-between items-center">
-                    <button
-                        onClick={() => setShowCreateModal(true)}
-                        className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-primary to-purple-600 rounded-xl text-white font-semibold hover:shadow-lg hover:shadow-primary/30 transition-all"
-                    >
-                        <Plus className="w-5 h-5" />
-                        새로운 여행
-                    </button>
-                    <button
-                        onClick={() => setShowJoinModal(true)}
-                        className="flex items-center gap-2 px-5 py-3 bg-white/5 border border-white/10 rounded-xl text-white font-semibold hover:bg-white/10 hover:border-primary/30 transition-all"
-                    >
-                        <UserPlus className="w-5 h-5" />
-                        참가하기
-                    </button>
+                    <div className="flex gap-3">
+                        <button
+                            onClick={() => setShowCreateModal(true)}
+                            className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-primary to-purple-600 rounded-xl text-white font-semibold hover:shadow-lg hover:shadow-primary/30 transition-all"
+                        >
+                            <Plus className="w-5 h-5" />
+                            새로운 여행
+                        </button>
+                        <button
+                            onClick={() => setShowJoinModal(true)}
+                            className="flex items-center gap-2 px-5 py-3 bg-white/5 border border-white/10 rounded-xl text-white font-semibold hover:bg-white/10 hover:border-primary/30 transition-all"
+                        >
+                            <UserPlus className="w-5 h-5" />
+                            참가하기
+                        </button>
+                    </div>
+
+                    {/* 관리자 전용 버튼 */}
+                    {userRole === 'ADMIN' && (
+                        <button
+                            onClick={() => navigate('/admin/dashboard')}
+                            className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-orange-500 to-red-600 rounded-xl text-white font-semibold hover:shadow-lg hover:shadow-orange-500/30 transition-all"
+                        >
+                            <Shield className="w-5 h-5" />
+                            관리자 대시보드
+                        </button>
+                    )}
                 </div>
 
                 {/* Travels List Section */}
-                <div>
+                <div className="mb-16">
                     <div className="flex items-center justify-between mb-6">
                         <h3 className="text-2xl font-bold text-white">내 여행 목록</h3>
                         <span className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 text-sm">
@@ -223,6 +274,76 @@ function DashboardPage() {
                             ))}
                         </div>
                     )}
+                </div>
+
+                {/* 📊 Travel Statistics Section */}
+                <div className="border-t border-white/5 pt-12">
+                    <div className="flex items-center gap-3 mb-8 px-1">
+                        <div className="p-2 rounded-xl bg-primary/10">
+                            <BarChart2 className="w-6 h-6 text-primary" />
+                        </div>
+                        <h3 className="text-2xl font-bold text-white">여행 인사이트</h3>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                        {/* Monthly Travels Chart */}
+                        <div className="p-6 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-sm hover:border-primary/30 transition-all">
+                            <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                                <BarChart2 className="w-5 h-5 text-primary" />
+                                월별 여행 추이
+                            </h3>
+                            <div className="h-64">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={stats.monthlyTravels}>
+                                        <XAxis dataKey="name" stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} />
+                                        <Tooltip content={<CustomTooltip />} cursor={{fill: 'rgba(255,255,255,0.05)'}} />
+                                        <Bar dataKey="value" fill="#a78bfa" radius={[4, 4, 0, 0]} barSize={20} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+
+                        {/* Schedule Types Chart */}
+                        <div className="p-6 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-sm hover:border-primary/30 transition-all">
+                            <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                                <PieChartIcon className="w-5 h-5 text-purple-400" />
+                                나의 여행 스타일 (일정 유형)
+                            </h3>
+                            <div className="h-64 flex items-center justify-center">
+                                {stats.scheduleTypes.length > 0 ? (
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie
+                                                data={stats.scheduleTypes}
+                                                cx="50%"
+                                                cy="50%"
+                                                innerRadius={60}
+                                                outerRadius={80}
+                                                paddingAngle={5}
+                                                dataKey="value"
+                                            >
+                                                {stats.scheduleTypes.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip content={<CustomTooltip />} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                ) : (
+                                    <p className="text-gray-500 text-sm">데이터가 충분하지 않습니다</p>
+                                )}
+                            </div>
+                            {/* Legend */}
+                            <div className="flex flex-wrap gap-3 justify-center mt-2">
+                                {stats.scheduleTypes.map((entry, index) => (
+                                    <div key={index} className="flex items-center gap-1.5">
+                                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
+                                        <span className="text-xs text-gray-400">{entry.name}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 

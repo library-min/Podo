@@ -27,6 +27,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-web' // 👈 'webmvc' 오타 수정 (중요!)
 	implementation 'org.springframework.boot:spring-boot-starter-websocket' // 👈 이미 잘 추가하셨습니다!
+	implementation 'org.springframework.boot:spring-boot-starter-actuator' // 👈 관리자 대시보드용 Actuator
 
 	// Spring Security (보안 프레임워크)
 	implementation 'org.springframework.boot:spring-boot-starter-security'
@@ -35,6 +36,13 @@ dependencies {
 	implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
 	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
 	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+
+	// Redis 캐싱 (성능 개선)
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+	implementation 'org.springframework.boot:spring-boot-starter-cache'
+
+	// Swagger API 문서화 (Springdoc OpenAPI)
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
 
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'com.mysql:mysql-connector-j'

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Plus, Trash2, MapPin, Clock } from 'lucide-react';
+import { Plus, Trash2, MapPin, Clock, Zap } from 'lucide-react';
 import PlaceSearch from './PlaceSearch';
 import AlertModal from '../components/AlertModal';
 import DayRouteMap from './DayRouteMap';
@@ -47,9 +47,17 @@ function Schedule({ travel }) {
     }, [travel, selectedDay]);
 
     const fetchSchedules = () => {
-        axios.get(`http://localhost:8080/api/schedules/${travel.travelId}/day/${selectedDay}`)
-            .then(res => setSchedules(res.data))
-            .catch(err => console.error(err));
+        console.log('🔍 일정 조회 시작:', `travelId=${travel.travelId}, day=${selectedDay}`);
+        axios.get(`http://localhost:8080/api/schedules/${travel.travelId}/${selectedDay}`)
+            .then(res => {
+                console.log('✅ 일정 조회 성공:', res.data);
+                setSchedules(res.data);
+            })
+            .catch(err => {
+                console.error('❌ 일정 조회 실패:', err);
+                console.error('에러 응답:', err.response?.data);
+                showAlert('오류', '일정을 불러오는데 실패했습니다.', 'error');
+            });
     };
 
     const handlePlaceSelect = (place) => {
@@ -85,7 +93,14 @@ function Schedule({ travel }) {
                     y: 0.0
                 });
             })
-            .catch(err => console.error(err));
+            .catch(err => {
+                if (err.response && err.response.status === 409) {
+                    showAlert('충돌 감지', '누군가 먼저 수정했습니다. 목록을 새로고침합니다.', 'error');
+                    fetchSchedules();
+                } else {
+                    console.error(err);
+                }
+            });
     };
 
     const deleteSchedule = (scheduleId) => {
@@ -93,7 +108,32 @@ function Schedule({ travel }) {
         
         axios.delete(`http://localhost:8080/api/schedules/${scheduleId}`)
             .then(() => fetchSchedules())
-            .catch(err => console.error(err));
+            .catch(err => {
+                if (err.response && err.response.status === 409) {
+                    showAlert('충돌 감지', '누군가 먼저 수정했습니다. 목록을 새로고침합니다.', 'error');
+                    fetchSchedules();
+                } else {
+                    console.error(err);
+                }
+            });
+    };
+
+    const handleOptimize = async () => {
+        if (!window.confirm(`${selectedDay}일차 동선을 최적화할까요?\n(거리순으로 정렬되고 시간이 재설정됩니다)`)) return;
+
+        try {
+            await axios.post(`http://localhost:8080/api/schedules/${travel.travelId}/${selectedDay}/optimize`);
+            fetchSchedules(); 
+            showAlert('성공', "동선이 최적화되었습니다! ⚡");
+        } catch (err) {
+            if (err.response && err.response.status === 409) {
+                showAlert('충돌 감지', '누군가 먼저 수정했습니다. 목록을 새로고침합니다.', 'error');
+                fetchSchedules();
+            } else {
+                console.error(err);
+                showAlert('실패', "최적화 실패", 'error');
+            }
+        }
     };
 
     // 여행 기간 계산 (travel이 유효할 때만)
@@ -132,6 +172,17 @@ function Schedule({ travel }) {
             <div className="grid lg:grid-cols-3 gap-6">
                 {/* Schedule List - 컴팩트 */}
                 <div className="lg:col-span-2 space-y-3">
+                    {/* Header with Optimize Button */}
+                    <div className="flex justify-between items-center mb-2 px-1">
+                        <h3 className="text-white font-bold text-lg">Day {selectedDay} 일정</h3>
+                        <button 
+                            onClick={handleOptimize}
+                            className="flex items-center gap-1.5 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 border border-yellow-500/50 px-3 py-1.5 rounded-lg font-bold text-xs transition-all shadow-lg hover:shadow-yellow-500/10"
+                        >
+                            <Zap size={14} className="fill-yellow-500" /> 동선 최적화
+                        </button>
+                    </div>
+
                     {schedules.map((schedule) => (
                         <div
                             key={schedule.id}

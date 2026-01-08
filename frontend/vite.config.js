@@ -7,4 +7,13 @@ export default defineConfig({
   define: {
     global: 'window', // SockJS를 위한 global 폴리필
   },
+  server: {
+    proxy: {
+      '/kakao-navi': {
+        target: 'https://apis-navi.kakaomobility.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/kakao-navi/, ''),
+      },
+    },
+  },
 })

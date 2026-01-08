@@ -17,12 +17,13 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
 
-    // 회원가입
+    // 회원가입 (무조건 일반 유저로 등록됨)
     public String signup(String email, String password, String nickname) {
         if (userRepository.findByEmail(email).isPresent()) {
             throw new IllegalArgumentException("이미 존재하는 이메일입니다.");
         }
         // 비밀번호 암호화하여 저장
+        // 주의: 이 생성자는 항상 Role.USER로 설정됨 (관리자는 DataLoader에서만 생성)
         Users user = new Users(email, passwordEncoder.encode(password), nickname);
         userRepository.save(user);
         return "회원가입 성공!";

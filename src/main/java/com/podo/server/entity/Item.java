@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
 @Getter @Setter
@@ -16,15 +17,16 @@ public class Item {
 
     private String name;        // 물건 이름
     private String category;    // 👈 추가됨! (음식, 장비 등)
-    
+
     @JsonProperty("isChecked")
     private boolean isChecked;  // 체크 여부
-    
+
     private String checker;     // 완료한 사람
     private String assignee;    // 담당자 (챙겨올 사람)
 
     @ManyToOne
     @JoinColumn(name = "travel_id")
+    @JsonIgnoreProperties({"members", "schedules"})
     private Travels travel;
 
     // 👈 컨트롤러에서 호출하는 새 생성자

@@ -116,10 +116,10 @@ function MyPage() {
         }
     };
 
-    if (loading) return <div className="min-h-screen bg-dark text-white flex items-center justify-center">로딩 중...</div>;
+    if (loading) return <div className="min-h-screen bg-transparent text-white flex items-center justify-center">로딩 중...</div>;
 
     return (
-        <div className="min-h-screen bg-dark">
+        <div className="min-h-screen bg-transparent">
             <Navbar />
             <AlertModal 
                 isOpen={alertState.isOpen}
@@ -210,12 +210,20 @@ function MyPage() {
                                 {/* Actions */}
                                 <div className="flex justify-end pt-4">
                                     {!isEditing ? (
-                                        <button 
-                                            onClick={() => setIsEditing(true)}
-                                            className="px-6 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all font-semibold"
-                                        >
-                                            수정하기
-                                        </button>
+                                        <div className="flex gap-3">
+                                            <button 
+                                                onClick={() => setIsEditing(true)}
+                                                className="px-6 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all font-semibold"
+                                            >
+                                                수정하기
+                                            </button>
+                                            <button
+                                                onClick={() => setShowDeleteConfirm(true)}
+                                                className="px-6 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all font-semibold"
+                                            >
+                                                회원탈퇴
+                                            </button>
+                                        </div>
                                     ) : (
                                         <div className="flex gap-3">
                                             <button 
@@ -233,6 +241,12 @@ function MyPage() {
                                             >
                                                 <Save className="w-4 h-4" />
                                                 저장하기
+                                            </button>
+                                            <button
+                                                onClick={() => setShowDeleteConfirm(true)}
+                                                className="px-6 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all font-semibold"
+                                            >
+                                                회원탈퇴
                                             </button>
                                         </div>
                                     )}
@@ -280,27 +294,6 @@ function MyPage() {
                             ))}
                         </div>
                     )}
-                </div>
-
-                {/* Danger Zone - 회원탈퇴 */}
-                <div className="p-8 rounded-3xl bg-red-500/5 border border-red-500/20">
-                    <div className="flex items-start justify-between">
-                        <div>
-                            <h3 className="text-xl font-bold text-red-400 mb-2 flex items-center gap-2">
-                                <UserX className="w-5 h-5" />
-                                위험 영역
-                            </h3>
-                            <p className="text-gray-400 text-sm">
-                                회원 탈퇴 시 모든 데이터가 삭제되며 복구할 수 없습니다.
-                            </p>
-                        </div>
-                        <button
-                            onClick={() => setShowDeleteConfirm(true)}
-                            className="px-6 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 transition-all font-semibold"
-                        >
-                            회원탈퇴
-                        </button>
-                    </div>
                 </div>
             </div>
 

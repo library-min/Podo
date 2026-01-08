@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter; // 👈 추가
+import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -11,7 +12,8 @@ import java.time.LocalDateTime;
 @Getter @Setter // 👈 추가
 @NoArgsConstructor
 @Table(name = "travels")
-public class Travels {
+public class Travels implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

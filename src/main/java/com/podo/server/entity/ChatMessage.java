@@ -20,12 +20,14 @@ public class ChatMessage {
     private Long travelId;
     private String sender;
     private String message;
+    private String type; // TEXT, IMAGE
     private LocalDateTime timestamp;
 
-    public ChatMessage(Long travelId, String sender, String message) {
+    public ChatMessage(Long travelId, String sender, String message, String type) {
         this.travelId = travelId;
         this.sender = sender;
         this.message = message;
+        this.type = (type == null) ? "TEXT" : type;
         this.timestamp = LocalDateTime.now();
     }
 }

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Getter @Setter
@@ -27,7 +28,11 @@ public class Schedule {
 
     @ManyToOne
     @JoinColumn(name = "travel_id")
+    @JsonIgnore
     private Travels travel;
+
+    @Version
+    private Long version;
 
     public Schedule(Integer day, String time, String type, String title, String location, String color,
                     String placeName, Double x, Double y, String address, Travels travel) {

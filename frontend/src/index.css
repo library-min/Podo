@@ -2,13 +2,16 @@
 
 /* Tailwind v4 커스텀 색상 정의 */
 @theme {
-  --color-primary: #8a2be2;
-  --color-dark: #0a0a0a;
+  --color-primary: #a78bfa;
+  --color-dark: #000000;
+  
+  --font-sans: 'Inter', 'Pretendard', system-ui, sans-serif;
+  --font-display: 'Outfit', sans-serif;
 }
 
 /* 1. 기본 배경 및 글꼴 설정 */
 :root {
-  font-family: 'Pretendard', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: var(--font-sans);
   color-scheme: dark;
 }
 
@@ -17,7 +20,7 @@ body {
   margin: 0;
   padding: 0;
   /* 시안에 사용된 짙은 검정 배경색 */
-  background-color: #0a0a0a;
+  background-color: #000000;
   color: #ffffff;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

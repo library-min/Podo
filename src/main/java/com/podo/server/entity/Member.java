@@ -1,5 +1,6 @@
 package com.podo.server.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,6 +19,7 @@ public class Member {
 
     @ManyToOne
     @JoinColumn(name = "travel_id")
+    @JsonIgnoreProperties({"members", "schedules"})
     private Travels travel;
 
     public Member(String name, String email, Travels travel) {
