@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useEffect } from 'react' // 👈 추가
+import './axiosConfig' // 👈 Axios 설정 (Authorization 헤더 자동 추가 + 401 자동 로그아웃)
 import HomePage from './pages/HomePage'
 import DashboardPage from './pages/DashboardPage'
 import LoginPage from './pages/LoginPage'

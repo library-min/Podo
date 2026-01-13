@@ -22,11 +22,11 @@ public class AuthController {
         return authService.signup(data.get("email"), data.get("password"), data.get("nickname"));
     }
 
-    // 2. 로그인 (JWT 토큰과 사용자 정보 반환)
+    // 2. 로그인 (JWT 토큰과 사용자 정보 반환 + Redis 세션 저장)
     @PostMapping("/login")
     public Map<String, String> login(@RequestBody Map<String, String> data) {
         Users user = authService.loginAndGetUser(data.get("email"), data.get("password"));
-        String token = authService.generateToken(user.getEmail());
+        String token = authService.generateToken(user.getEmail()); // ✨ Redis 세션 자동 저장됨
 
         Map<String, String> response = new HashMap<>();
         response.put("token", token);
@@ -35,5 +35,16 @@ public class AuthController {
         response.put("role", user.getRole().name()); // 권한 정보 추가
 
         return response;
+    }
+
+    // 3. 로그아웃 (Redis 세션 삭제)
+    @PostMapping("/logout")
+    public String logout(@RequestHeader("Authorization") String authHeader) {
+        // "Bearer {token}" 형식에서 토큰 추출
+        String token = authHeader.replace("Bearer ", "");
+        String email = authService.getEmailFromToken(token);
+
+        authService.logout(email); // Redis 세션 삭제
+        return "로그아웃 성공!";
     }
 }

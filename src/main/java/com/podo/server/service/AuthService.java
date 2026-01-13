@@ -16,6 +16,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final SessionService sessionService; // Redis 세션 관리
 
     // 회원가입 (무조건 일반 유저로 등록됨)
     public String signup(String email, String password, String nickname) {
@@ -47,8 +48,24 @@ public class AuthService {
         return user;
     }
 
-    // JWT 토큰 생성
+    // JWT 토큰 생성 및 Redis 세션 저장
     public String generateToken(String email) {
-        return jwtUtil.generateToken(email);
+        String token = jwtUtil.generateToken(email);
+
+        // ✨ Redis에 세션 저장 (TTL: 10분)
+        // 사용자가 10분간 활동하지 않으면 자동으로 세션이 만료됨
+        sessionService.saveSession(email, token);
+
+        return token;
+    }
+
+    // 로그아웃 (Redis 세션 삭제)
+    public void logout(String email) {
+        sessionService.deleteSession(email);
+    }
+
+    // 토큰에서 이메일 추출
+    public String getEmailFromToken(String token) {
+        return jwtUtil.getEmail(token);
     }
 }

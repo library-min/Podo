@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
@@ -27,46 +28,72 @@ import java.time.Duration;
  *
  * ⚠️ 주의: Redis가 설치되지 않은 경우 application.properties에서 spring.cache.type=simple로 설정
  */
-// @Configuration
-// @EnableCaching
+@Configuration
+@EnableCaching
 public class RedisConfig {
 
     /**
      * Redis 캐시 매니저 설정
      * Key: String, Value: JSON (Jackson 직렬화)
      */
-    // @Bean
-    // public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
-    //     // ObjectMapper 설정 (LocalDateTime 등 Java 8 시간 API 지원)
-    //     ObjectMapper objectMapper = new ObjectMapper();
-    //     objectMapper.registerModule(new JavaTimeModule());
-    //     objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    @Bean
+    public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
+        // ObjectMapper 설정 (LocalDateTime 등 Java 8 시간 API 지원)
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-    //     // JSON 직렬화기
-    //     GenericJackson2JsonRedisSerializer jsonSerializer =
-    //         new GenericJackson2JsonRedisSerializer(objectMapper);
+        // JSON 직렬화기
+        GenericJackson2JsonRedisSerializer jsonSerializer =
+            new GenericJackson2JsonRedisSerializer(objectMapper);
 
-    //     // 기본 캐시 설정 (TTL: 30분)
-    //     RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
-    //         .serializeKeysWith(
-    //             RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer())
-    //         )
-    //         .serializeValuesWith(
-    //             RedisSerializationContext.SerializationPair.fromSerializer(jsonSerializer)
-    //         )
-    //         .entryTtl(Duration.ofMinutes(30)); // 기본 TTL 30분
+        // 기본 캐시 설정 (TTL: 30분)
+        RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
+            .serializeKeysWith(
+                RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer())
+            )
+            .serializeValuesWith(
+                RedisSerializationContext.SerializationPair.fromSerializer(jsonSerializer)
+            )
+            .entryTtl(Duration.ofMinutes(30)); // 기본 TTL 30분
 
-    //     // 캐시별 개별 설정
-    //     RedisCacheManager.RedisCacheManagerBuilder builder = RedisCacheManager
-    //         .builder(connectionFactory)
-    //         .cacheDefaults(defaultConfig)
-    //         // 환율 정보: 1시간 캐싱
-    //         .withCacheConfiguration("currencyRates",
-    //             defaultConfig.entryTtl(Duration.ofHours(1)))
-    //         // 여행 일정: 30분 캐싱 (기본값)
-    //         .withCacheConfiguration("schedules",
-    //             defaultConfig.entryTtl(Duration.ofMinutes(30)));
+        // 캐시별 개별 설정
+        RedisCacheManager.RedisCacheManagerBuilder builder = RedisCacheManager
+            .builder(connectionFactory)
+            .cacheDefaults(defaultConfig)
+            // 환율 정보: 1시간 캐싱
+            .withCacheConfiguration("currencyRates",
+                defaultConfig.entryTtl(Duration.ofHours(1)))
+            // 여행 일정: 30분 캐싱 (기본값)
+            .withCacheConfiguration("schedules",
+                defaultConfig.entryTtl(Duration.ofMinutes(30)));
 
-    //     return builder.build();
-    // }
+        return builder.build();
+    }
+
+    /**
+     * RedisTemplate 설정 (세션 관리용)
+     *
+     * 🎯 목적: Redis에 세션 데이터를 저장/조회하기 위한 템플릿
+     * - Key: String (사용자 이메일)
+     * - Value: String (세션 정보 또는 토큰)
+     *
+     * 📌 사용 예시:
+     * - redisTemplate.opsForValue().set("user@email.com", "sessionData", 10, TimeUnit.MINUTES);
+     * - redisTemplate.opsForValue().get("user@email.com");
+     */
+    @Bean
+    public RedisTemplate<String, String> redisTemplate(RedisConnectionFactory connectionFactory) {
+        RedisTemplate<String, String> template = new RedisTemplate<>();
+        template.setConnectionFactory(connectionFactory);
+
+        // Key와 Value 모두 String으로 직렬화
+        StringRedisSerializer stringSerializer = new StringRedisSerializer();
+        template.setKeySerializer(stringSerializer);
+        template.setValueSerializer(stringSerializer);
+        template.setHashKeySerializer(stringSerializer);
+        template.setHashValueSerializer(stringSerializer);
+
+        return template;
+    }
 }
