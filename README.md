@@ -448,6 +448,20 @@ frontend/src/
 
 ## 🚀 실행 방법
 
+### 0. 환경 설정 (최초 1회)
+
+**⚠️ 중요: 민감한 정보 설정**
+
+```bash
+# 1. application.properties 파일 생성
+cd src/main/resources
+cp application.properties.example application.properties
+
+# 2. application.properties 파일 수정
+# - spring.datasource.username: MySQL 사용자명
+# - spring.datasource.password: MySQL 비밀번호
+```
+
 ### 1. Redis 실행 (Docker)
 ```bash
 docker run -d --name podo-redis -p 6379:6379 redis:latest
@@ -460,7 +474,6 @@ CREATE DATABASE podo;
 
 ### 3. Backend 실행
 ```bash
-# application.properties에서 DB 정보 설정 후
 ./gradlew bootRun
 ```
 
@@ -475,6 +488,44 @@ npm run dev
 - Frontend: http://localhost:5173
 - Backend API: http://localhost:8080
 - Swagger UI: http://localhost:8080/swagger-ui/index.html
+
+---
+
+## 📌 Git 설정 안내
+
+### .gitignore에 포함된 파일들 (Git에 올라가지 않음)
+
+**민감한 정보:**
+- `application.properties` - DB 비밀번호, API 키
+- `.env` 파일들
+
+**빌드 결과물:**
+- `build/`, `target/`, `dist/`
+- `node_modules/`
+
+**업로드 파일:**
+- `uploads/` - 사용자가 업로드한 이미지
+
+**기타:**
+- 로그 파일 (`*.log`)
+- IDE 설정 (`.idea/`, `.vscode/`)
+- OS 파일 (`.DS_Store`)
+
+### 처음 클론하는 경우
+
+```bash
+# 1. 저장소 클론
+git clone <repository-url>
+cd server
+
+# 2. application.properties 생성
+cp src/main/resources/application.properties.example src/main/resources/application.properties
+
+# 3. application.properties 수정 (DB 정보 입력)
+# vim 또는 메모장으로 수정
+
+# 4. 의존성 설치 및 실행 (위의 실행 방법 참고)
+```
 
 ---
 

@@ -8,7 +8,8 @@
       "Bash(findstr:*)",
       "Bash(taskkill:*)",
       "Bash(./gradlew build:*)",
-      "Bash(wmic process where \"ProcessId=20204\" delete)"
+      "Bash(wmic process where \"ProcessId=20204\" delete)",
+      "Bash(git rm:*)"
     ]
   }
 }
