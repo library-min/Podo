@@ -1,6 +1,6 @@
 # 🌏 PODO - 함께 떠나는 특별한 여행
 
-> 친구들과 실시간으로 여행 계획(일정, 정산, 채팅)을 세우고 공유하는 협업 플랫폼
+> 친구들과 실시간으로 여행 계획(일정, 투표, 짐 체크리스트, 채팅)을 세우고 공유하는 협업 플랫폼
 
 <div align="center">
 
@@ -21,8 +21,8 @@
 - [프로젝트 소개](#-프로젝트-소개)
 - [기술 스택](#-기술-스택)
 - [핵심 기능](#-핵심-기능)
-- [기술적 심화 (Technical Deep Dive)](#-기술적-심화-technical-deep-dive)
-- [트러블 슈팅](#-트러블-슈팅-trouble-shooting)
+- [기술적 심화](#-기술적-심화-technical-deep-dive)
+- [트러블 슈팅](#-트러블-슈팅)
 - [프로젝트 구조](#-프로젝트-구조)
 - [실행 방법](#-실행-방법)
 
@@ -31,15 +31,16 @@
 ## 🎯 프로젝트 소개
 
 **PODO**는 여행을 계획하는 친구들이 실시간으로 협업할 수 있는 웹 플랫폼입니다.
-단순한 일정 관리를 넘어, **동선 최적화**, **실시간 채팅**, **비용 정산**, **음성 인식 일정 추가** 등 여행의 전 과정을 지원합니다.
+일정 관리, 투표, 짐 체크리스트, 실시간 채팅 등 여행의 전 과정을 함께 계획할 수 있습니다.
 
 ### 🌟 주요 특징
 
-- **🗺️ 3D 지도 리플레이**: Mapbox를 활용한 시각적인 여행 경로 미리보기
-- **🎤 음성 인식 일정 추가**: Web Speech API를 통한 핸즈프리 일정 입력
-- **🔄 실시간 협업**: WebSocket 기반 멤버 접속 상태 표시 및 채팅
-- **💰 자동 정산**: 여행 비용을 멤버별로 자동 계산 및 정산
-- **🔐 보안**: JWT 기반 인증 + Redis 세션 관리 (10분 미활동 시 자동 로그아웃)
+- **🗺️ 동선 최적화**: TSP 알고리즘으로 여행 경로를 최단 거리순으로 자동 정렬
+- **🗳️ 실시간 투표**: 여행지, 식당, 숙소 등을 팀원들과 투표로 결정
+- **📦 짐 체크리스트**: 챙길 물건을 공유하고 담당자 지정
+- **💬 실시간 채팅**: WebSocket 기반 채팅 및 이미지 공유
+- **👥 접속 상태 표시**: 현재 접속 중인 멤버를 실시간으로 확인
+- **🔐 보안**: JWT + Redis 세션 관리 (10분 미활동 시 자동 로그아웃)
 
 ---
 
@@ -48,7 +49,6 @@
 ### Frontend
 ![React](https://img.shields.io/badge/React-18.3.1-61DAFB?style=flat-square&logo=react&logoColor=black)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-3.4-06B6D4?style=flat-square&logo=tailwind-css&logoColor=white)
-![Zustand](https://img.shields.io/badge/Zustand-4.5-000000?style=flat-square)
 ![Axios](https://img.shields.io/badge/Axios-1.6-5A29E4?style=flat-square&logo=axios&logoColor=white)
 ![Recharts](https://img.shields.io/badge/Recharts-2.10-FF6B6B?style=flat-square)
 ![Mapbox](https://img.shields.io/badge/Mapbox-GL%20JS-000000?style=flat-square&logo=mapbox&logoColor=white)
@@ -57,7 +57,6 @@
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.1-6DB33F?style=flat-square&logo=spring-boot&logoColor=white)
 ![Spring Security](https://img.shields.io/badge/Spring%20Security-6.x-6DB33F?style=flat-square&logo=spring-security&logoColor=white)
 ![JPA](https://img.shields.io/badge/JPA-Hibernate-59666C?style=flat-square&logo=hibernate&logoColor=white)
-![QueryDSL](https://img.shields.io/badge/QueryDSL-5.0-0769AD?style=flat-square)
 ![JWT](https://img.shields.io/badge/JWT-0.11.5-000000?style=flat-square&logo=json-web-tokens&logoColor=white)
 
 ### Database & Cache
@@ -74,112 +73,119 @@
 
 ## ✨ 핵심 기능
 
-### 1️⃣ 여행 일정 관리
-- **Drag & Drop 인터페이스**로 직관적인 일정 편집
-- **날짜별 일정 그룹화** 및 시간대별 정렬
-- **일정 템플릿 저장** 및 재사용 기능
+### 1️⃣ 여행 관리
+- **여행 방 생성/참가**: 초대 코드로 친구 초대
+- **여행 정보 수정**: 제목, 날짜 변경
+- **여행 통계**: 전체 여행 수, 오늘 생성된 여행 등
+- **권한 관리**: 방장(Creator)과 일반 멤버 구분
 
-### 2️⃣ 실시간 협업
-- **WebSocket (STOMP)** 기반 실시간 채팅
-- **현재 접속 중인 멤버** 실시간 표시 (Presence System)
-- **멤버별 권한 관리** (Creator/Member)
+### 2️⃣ 일정 관리 (Redis 캐싱)
+- **일정 CRUD**: 날짜별 일정 생성, 수정, 삭제
+- **동선 최적화**: TSP 알고리즘으로 최적 경로 자동 재배치
+- **Redis 캐싱**: 자주 조회되는 일정 데이터를 30분간 캐싱하여 성능 향상
 
-### 3️⃣ 동선 최적화
-- **TSP 알고리즘** (Nearest Neighbor) 응용
-- 여러 장소를 최단 거리순으로 자동 정렬
-- **Mapbox GL JS**를 활용한 3D 지도 시각화
+### 3️⃣ 투표 시스템
+- **투표 생성**: 여행지, 식당, 숙소 등에 대한 투표 생성
+- **실시간 투표**: WebSocket으로 투표 결과 실시간 반영
+- **투표 취소/변경**: 언제든지 투표 취소하거나 다른 항목으로 변경 가능
+- **내 투표 기록 조회**: 여행별 내가 투표한 항목 확인
 
-### 4️⃣ 비용 정산
-- 항목별 비용 입력 및 **멤버별 자동 정산**
-- N분의 1 정산 및 **개별 정산 옵션**
-- 정산 내역 **CSV/엑셀 내보내기**
+### 4️⃣ 짐 체크리스트
+- **카테고리별 관리**: 의류, 세면도구, 전자기기 등 카테고리 분류
+- **담당자 지정**: 누가 챙겨올지 담당자 지정 가능
+- **체크 완료**: 짐을 챙겼을 때 체크 표시 및 완료자 기록
+- **실시간 동기화**: WebSocket으로 팀원들과 실시간 공유
 
-### 5️⃣ 음성 인식 일정 추가
-- **Web Speech API**를 활용한 음성 인식
-- "내일 오후 2시에 에펠탑" → 자동 파싱 및 일정 생성
+### 5️⃣ 실시간 채팅
+- **텍스트 채팅**: WebSocket (STOMP) 기반 실시간 메시지 전송
+- **이미지 공유**: 파일 업로드 기능으로 사진 공유
+- **채팅 히스토리**: 이전 대화 내역 조회
 
-### 6️⃣ 관리자 대시보드
-- 전체 여행 통계 및 사용자 현황 모니터링
-- **Recharts**를 활용한 데이터 시각화
-- 시스템 헬스 체크 및 로그 조회
+### 6️⃣ 접속 상태 관리 (Presence System)
+- **실시간 접속자 표시**: 현재 누가 여행 방에 접속해 있는지 실시간 표시
+- **입장/퇴장 알림**: 멤버가 들어오거나 나갈 때 자동 감지
+- **WebSocket 연결 관리**: 브라우저 종료 시 자동으로 퇴장 처리
+
+### 7️⃣ 관리자 대시보드
+- **전체 통계 조회**: 전체 회원 수, 여행 수, 오늘 생성된 여행 수
+- **권한 관리**: ADMIN 역할을 가진 사용자만 접근 가능
+- **JWT 기반 인증**: Authorization 헤더로 관리자 권한 확인
 
 ---
 
 ## 🚀 기술적 심화 (Technical Deep Dive)
 
-### 1. 동선 최적화 알고리즘 (TSP - Nearest Neighbor)
+### 1. 동선 최적화 알고리즘 (TSP - Nearest Neighbor + Haversine)
 
 여행 일정의 여러 장소를 **최단 거리순으로 자동 정렬**하여 불필요한 이동 시간을 최소화합니다.
 
 ```java
-// RouteService.java (핵심 로직)
-public List<ScheduleItem> optimizeRoute(List<ScheduleItem> items) {
-    // 1. 시작점(첫 번째 일정) 선택
-    List<ScheduleItem> optimized = new ArrayList<>();
-    ScheduleItem current = items.get(0);
-    optimized.add(current);
+// RouteService.java - 핵심 로직
+@Transactional
+public void optimizeRoute(Long travelId, int day) {
+    List<Schedule> originalList = scheduleRepository
+        .findByTravel_TravelIdAndDayOrderByTimeAsc(travelId, day);
 
-    // 2. 현재 위치에서 가장 가까운 다음 장소를 반복적으로 선택
-    while (optimized.size() < items.size()) {
-        ScheduleItem nearest = findNearestItem(current, items, optimized);
-        optimized.add(nearest);
+    // 1. 시작점 설정 (첫 번째 일정 고정)
+    List<Schedule> optimizedList = new ArrayList<>();
+    Schedule current = originalList.remove(0);
+    optimizedList.add(current);
+
+    // 2. Nearest Neighbor: 현재 위치에서 가장 가까운 다음 장소 선택
+    while (!originalList.isEmpty()) {
+        Schedule nearest = findNearestSchedule(current, originalList);
+        optimizedList.add(nearest);
+        originalList.remove(nearest);
         current = nearest;
     }
 
-    return optimized;
+    // 3. 시간 재설정 (1시간 30분 간격)
+    updateScheduleTimes(optimizedList);
+}
+
+// Haversine 공식: 두 지점 간 실제 거리 계산 (단위: km)
+private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+    final int R = 6371; // 지구 반지름
+    double dLat = Math.toRadians(lat2 - lat1);
+    double dLon = Math.toRadians(lon2 - lon1);
+    double a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+               Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
+               Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
 }
 ```
 
-**✅ 성능 개선:**
-- 초기: 수동 정렬 필요
-- 적용 후: **평균 이동 거리 30% 감소**
+**✅ 효과:**
+- 수동으로 경로를 정렬할 필요 없이 클릭 한 번으로 최적 경로 생성
+- 위도/경도 기반 실제 거리 계산으로 정확한 경로 제공
 
 ---
 
-### 2. 동시성 제어 (JPA 낙관적 락)
+### 2. Redis 캐싱으로 성능 최적화
 
-여러 명이 동시에 일정을 수정할 때 **데이터 덮어쓰기 문제**를 방지합니다.
+자주 조회되는 일정 데이터에 **Redis 캐싱**을 적용하여 DB 조회 횟수를 줄입니다.
 
 ```java
-@Entity
-public class Travel {
-    @Version // 👈 JPA 낙관적 락
-    private Long version;
+@Cacheable(value = "schedules", key = "#travelId + '_' + #day")
+public List<Schedule> getSchedules(Long travelId, int day) {
+    return scheduleRepository.findByTravel_TravelIdAndDayOrderByTimeAsc(travelId, day);
+}
 
-    // ...
+@CacheEvict(value = "schedules", allEntries = true)
+public Schedule updateSchedule(Long scheduleId, ScheduleRequest request) {
+    // 일정 수정 시 캐시 무효화
 }
 ```
 
 **동작 방식:**
-1. 사용자 A가 일정을 조회 (version = 1)
-2. 사용자 B가 일정을 조회 (version = 1)
-3. 사용자 A가 수정 후 저장 → version = 2로 증가
-4. 사용자 B가 수정 후 저장 시도 → **OptimisticLockException 발생** (version 불일치)
-5. 프론트엔드에서 "다른 사용자가 수정했습니다. 새로고침해주세요" 알림 표시
-
-**✅ 데이터 무결성 보장**
+- 첫 조회: DB에서 조회 후 Redis에 30분간 캐싱
+- 이후 조회: Redis에서 즉시 반환 (DB 접근 없음)
+- 수정/삭제: 캐시 자동 삭제 → 다음 조회 시 최신 데이터 반영
 
 ---
 
-### 3. Redis Caching으로 성능 최적화
-
-자주 조회되지만 잘 변하지 않는 데이터(환율, 통계)에 **Redis 캐싱**을 적용하여 DB 부하를 감소시킵니다.
-
-```java
-@Cacheable(value = "currencyRates", key = "#date") // 👈 Redis 캐시 적용
-public Map<String, Double> getExchangeRates(LocalDate date) {
-    // 외부 API 호출 (시간 소요)
-    return apiClient.fetchRates(date);
-}
-```
-
-**✅ 성능 개선:**
-- 초기: 환율 API 호출 평균 **1.2초**
-- 캐싱 후: Redis 조회 평균 **15ms** (80배 향상)
-
----
-
-### 4. Redis 세션 관리 (10분 자동 로그아웃)
+### 3. Redis 세션 관리 (10분 자동 로그아웃)
 
 JWT 토큰만으로는 **서버 측에서 세션을 즉시 무효화할 수 없는 문제**를 Redis로 해결합니다.
 
@@ -198,184 +204,18 @@ public boolean refreshSession(String email) {
 
 **동작 흐름:**
 1. 로그인 시 Redis에 세션 저장 (TTL: 10분)
-2. API 호출 시마다 TTL 갱신
+2. API 호출 시마다 SessionInterceptor가 TTL 갱신
 3. 10분간 활동 없으면 Redis에서 자동 삭제 → 401 에러 → 로그아웃
 
-**✅ 보안 강화:** 방치된 계정 자동 로그아웃
-
----
-
-### 5. WebSocket 실시간 통신
-
-**STOMP 프로토콜**을 사용하여 메시지 라우팅 및 구독 관리를 간소화합니다.
-
-```java
-// WebSocketConfig.java
-@Override
-public void configureMessageBroker(MessageBrokerRegistry config) {
-    config.enableSimpleBroker("/topic"); // 클라이언트가 구독할 prefix
-    config.setApplicationDestinationPrefixes("/app"); // 서버로 메시지 전송 시 prefix
-}
-```
-
-**주요 기능:**
-- **채팅**: `/topic/chat/{travelId}` 구독 → 실시간 메시지 수신
-- **접속 상태**: `/topic/presence/{travelId}` → 멤버 접속/퇴장 이벤트
-
----
-
-## 🔥 트러블 슈팅 (Trouble Shooting)
-
-### 1️⃣ Redis 연결 거부 (`RedisConnectionFailureException`)
-
-**🚨 문제:**
-```
-Caused by: org.springframework.data.redis.RedisConnectionFailureException:
-Unable to connect to Redis; Connection refused: localhost/127.0.0.1:6379
-```
-
-**🔍 원인:**
-- Spring Boot 실행 전 Redis 서버가 구동되지 않음
-- `application.properties`에 Redis 설정이 있지만 실제 Redis는 미실행 상태
-
-**✅ 해결:**
-```bash
-# Docker로 Redis 실행
-docker run -d --name podo-redis -p 6379:6379 redis:latest
-
-# 또는 Docker Compose
-docker-compose up -d redis
-```
-
-**📌 학습 포인트:**
-- Redis는 별도의 프로세스로 실행되어야 함
-- Docker를 활용하면 환경 설정을 간소화할 수 있음
-
----
-
-### 2️⃣ Swagger 500 에러 (API Docs 로딩 실패)
-
-**🚨 문제:**
-```
-http://localhost:8080/swagger-ui/index.html
-→ 500 Internal Server Error
-```
-
-**🔍 원인:**
-- Spring Security가 `/v3/api-docs/**` 경로를 인증 필요로 간주
-- Swagger가 API 명세를 가져오지 못해 UI 렌더링 실패
-
-**✅ 해결:**
-```java
-// SecurityConfig.java
-@Bean
-public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    http.authorizeHttpRequests(auth -> auth
-        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll() // 👈 추가
-        .anyRequest().authenticated()
-    );
-    return http.build();
-}
-```
-
-**📌 학습 포인트:**
-- Spring Security는 기본적으로 모든 경로를 보호함
-- 개발 편의를 위해 Swagger 경로는 인증 제외 필요
-
----
-
-### 3️⃣ CORS 에러 (프론트엔드 ↔ 백엔드 통신 실패)
-
-**🚨 문제:**
-```
-Access to XMLHttpRequest at 'http://localhost:8080/api/travels'
-from origin 'http://localhost:5173' has been blocked by CORS policy
-```
-
-**🔍 원인:**
-- 브라우저의 동일 출처 정책(Same-Origin Policy)
-- 프론트엔드(5173 포트)와 백엔드(8080 포트)의 출처가 다름
-
-**✅ 해결:**
-```java
-// SecurityConfig.java
-@Bean
-public CorsConfigurationSource corsConfigurationSource() {
-    CorsConfiguration configuration = new CorsConfiguration();
-    configuration.addAllowedOrigin("http://localhost:5173"); // 프론트엔드 주소
-    configuration.addAllowedMethod("*");
-    configuration.addAllowedHeader("*");
-    configuration.setAllowCredentials(true);
-
-    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-    source.registerCorsConfiguration("/**", configuration);
-    return source;
-}
-```
-
-**📌 학습 포인트:**
-- CORS는 브라우저 보안 정책이므로 서버에서 허용 설정 필요
-- 실제 운영 환경에서는 특정 도메인만 허용해야 함
-
----
-
-### 4️⃣ JPA N+1 문제 (쿼리 폭증으로 성능 저하)
-
-**🚨 문제:**
-```java
-// 여행 목록 조회 시 멤버 정보를 함께 가져오는 경우
-List<Travel> travels = travelRepository.findAll(); // 1번의 쿼리
-for (Travel travel : travels) {
-    List<Member> members = travel.getMembers(); // N번의 추가 쿼리 발생!
-}
-```
-
-**🔍 원인:**
-- JPA의 지연 로딩(Lazy Loading) 전략
-- 연관된 엔티티를 접근할 때마다 추가 쿼리 실행
-
-**✅ 해결:**
-```java
-// Fetch Join 사용
-@Query("SELECT t FROM Travel t JOIN FETCH t.members WHERE t.id = :id")
-Optional<Travel> findByIdWithMembers(@Param("id") Long id);
-```
-
-**📌 학습 포인트:**
-- N+1 문제는 ORM 사용 시 흔히 발생하는 성능 이슈
-- Fetch Join, EntityGraph, Batch Size 조정 등으로 해결 가능
-
----
-
-### 5️⃣ 프론트엔드 Authorization 헤더 누락 (401 에러 연속 발생)
-
-**🚨 문제:**
-```
-⚠️ Authorization 헤더 없음: /api/travels/my
-⚠️ Authorization 헤더 없음: /api/users/...
-```
-
-**🔍 원인:**
-- 프론트엔드에서 API 호출 시 JWT 토큰을 헤더에 포함하지 않음
-- SessionInterceptor가 모든 요청을 401로 차단
-
-**✅ 해결:**
+**프론트엔드 자동 로그아웃:**
 ```javascript
-// axiosConfig.js (글로벌 인터셉터)
-axios.interceptors.request.use((config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`; // 👈 자동 추가
-    }
-    return config;
-});
-
-// 401 에러 시 자동 로그아웃
+// axiosConfig.js
 axios.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
             localStorage.clear();
+            alert('세션이 만료되었습니다. 다시 로그인해주세요.');
             window.location.href = '/'; // 메인페이지로 리다이렉트
         }
         return Promise.reject(error);
@@ -383,9 +223,153 @@ axios.interceptors.response.use(
 );
 ```
 
-**📌 학습 포인트:**
-- Axios Interceptor를 활용하면 반복 코드 제거 가능
-- 인증 에러 처리를 중앙화하여 유지보수성 향상
+---
+
+### 4. WebSocket 실시간 통신 (STOMP)
+
+**STOMP 프로토콜**을 사용하여 채팅, 투표, 접속 상태를 실시간으로 동기화합니다.
+
+```java
+// WebSocketConfig.java
+@Override
+public void configureMessageBroker(MessageBrokerRegistry config) {
+    config.enableSimpleBroker("/topic"); // 클라이언트가 구독할 prefix
+    config.setApplicationDestinationPrefixes("/app"); // 서버로 전송 시 prefix
+}
+```
+
+**주요 토픽:**
+- `/topic/chat/{travelId}` - 채팅 메시지
+- `/topic/travel/{travelId}` - 투표/짐 체크리스트 업데이트
+- `/topic/travel/{travelId}/presence` - 접속 상태
+
+**접속 상태 관리 (Presence System):**
+```java
+// PresenceController.java
+@MessageMapping("/travel/{travelId}/enter")
+public void enter(@DestinationVariable Long travelId, @Payload String username) {
+    roomUsers.computeIfAbsent(travelId, k -> ConcurrentHashMap.newKeySet()).add(username);
+    broadcastList(travelId); // 전체에게 현재 접속자 명단 전송
+}
+
+@EventListener
+public void handleDisconnect(SessionDisconnectEvent event) {
+    // 브라우저 종료 시 자동으로 명단에서 제거
+}
+```
+
+---
+
+## 🔥 트러블 슈팅
+
+### 1️⃣ Redis 연결 거부 (`RedisConnectionFailureException`)
+
+**🚨 문제:**
+```
+Unable to connect to Redis; Connection refused: localhost/127.0.0.1:6379
+```
+
+**🔍 원인:**
+- Spring Boot 실행 전 Redis 서버가 구동되지 않음
+
+**✅ 해결:**
+```bash
+docker run -d --name podo-redis -p 6379:6379 redis:latest
+```
+
+---
+
+### 2️⃣ Swagger 500 에러
+
+**🚨 문제:**
+- Swagger UI 접속 시 500 Internal Server Error
+
+**🔍 원인:**
+- Spring Security가 `/v3/api-docs/**` 경로를 차단
+
+**✅ 해결:**
+```java
+// SecurityConfig.java
+http.authorizeHttpRequests(auth -> auth
+    .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+    .anyRequest().authenticated()
+);
+```
+
+---
+
+### 3️⃣ CORS 에러
+
+**🚨 문제:**
+```
+Access blocked by CORS policy
+```
+
+**🔍 원인:**
+- 프론트엔드(5173)와 백엔드(8080) 포트가 달라 CORS 정책 위반
+
+**✅ 해결:**
+```java
+@Bean
+public CorsConfigurationSource corsConfigurationSource() {
+    CorsConfiguration configuration = new CorsConfiguration();
+    configuration.addAllowedOrigin("http://localhost:5173");
+    configuration.addAllowedMethod("*");
+    configuration.addAllowedHeader("*");
+    configuration.setAllowCredentials(true);
+    return source;
+}
+```
+
+---
+
+### 4️⃣ 프론트엔드 Authorization 헤더 누락
+
+**🚨 문제:**
+```
+⚠️ Authorization 헤더 없음: /api/travels/my
+```
+
+**🔍 원인:**
+- API 호출 시 JWT 토큰을 헤더에 포함하지 않음
+
+**✅ 해결:**
+```javascript
+// axiosConfig.js - 글로벌 인터셉터
+axios.interceptors.request.use((config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
+```
+
+---
+
+### 5️⃣ WebSocket 연결 끊김 시 접속자 명단 미갱신
+
+**🚨 문제:**
+- 브라우저 종료 후에도 접속자 명단에 남아있음
+
+**🔍 원인:**
+- `SessionDisconnectEvent` 리스너가 제대로 동작하지 않음
+
+**✅ 해결:**
+```java
+// sessionId와 사용자 정보를 매핑하여 저장
+private final Map<String, UserSessionInfo> sessionMap = new ConcurrentHashMap<>();
+
+@EventListener
+public void handleDisconnect(SessionDisconnectEvent event) {
+    String sessionId = event.getSessionId();
+    UserSessionInfo info = sessionMap.remove(sessionId);
+    if (info != null) {
+        roomUsers.get(info.travelId).remove(info.username);
+        broadcastList(info.travelId);
+    }
+}
+```
 
 ---
 
@@ -401,18 +385,26 @@ src/main/java/com/podo/server/
 │   ├── WebSocketConfig.java      # WebSocket (STOMP)
 │   └── WebMvcConfig.java         # 인터셉터 등록
 ├── controller/             # REST API 엔드포인트
-│   ├── AuthController.java       # 로그인/회원가입
+│   ├── AuthController.java       # 로그인/회원가입/로그아웃
 │   ├── TravelController.java     # 여행 CRUD
 │   ├── ScheduleController.java   # 일정 관리
+│   ├── VoteController.java       # 투표 시스템
+│   ├── ItemController.java       # 짐 체크리스트
 │   ├── ChatController.java       # 채팅 메시지
-│   └── AdminController.java      # 관리자 기능
+│   ├── PresenceController.java   # 접속 상태 관리
+│   ├── AdminController.java      # 관리자 기능
+│   ├── NotificationController.java # 알림
+│   ├── MemberController.java     # 멤버 관리
+│   └── UserController.java       # 사용자 조회
 ├── dto/                    # 데이터 전송 객체
 ├── entity/                 # JPA 엔티티 (DB 테이블)
-│   ├── Users.java                # 사용자 (이메일 인증)
-│   ├── Travel.java               # 여행 (낙관적 락)
+│   ├── Users.java                # 사용자
+│   ├── Travels.java              # 여행
 │   ├── Schedule.java             # 일정
+│   ├── Vote.java                 # 투표
+│   ├── Item.java                 # 짐
+│   ├── ChatMessage.java          # 채팅
 │   └── Member.java               # 여행 멤버
-├── exception/              # 커스텀 예외 처리
 ├── interceptor/            # HTTP 요청 인터셉터
 │   └── SessionInterceptor.java   # 세션 TTL 갱신
 ├── repository/             # JPA Repository
@@ -421,6 +413,7 @@ src/main/java/com/podo/server/
 └── service/                # 비즈니스 로직
     ├── AuthService.java          # 인증/인가
     ├── TravelService.java        # 여행 관리
+    ├── ScheduleService.java      # 일정 관리
     ├── SessionService.java       # Redis 세션
     └── RouteService.java         # TSP 동선 최적화
 ```
@@ -440,7 +433,12 @@ frontend/src/
 │   ├── TravelWorkspace.jsx       # 여행 작업 공간
 │   ├── Schedule.jsx              # 일정 관리
 │   ├── PackingList.jsx           # 짐 체크리스트
-│   └── AdminDashboard.jsx        # 관리자 대시보드
+│   ├── VoteManager.jsx           # 투표
+│   ├── PlaceSearch.jsx           # 장소 검색
+│   ├── DayRouteMap.jsx           # 지도
+│   ├── PresenceAvatars.jsx       # 접속 상태
+│   ├── AdminDashboard.jsx        # 관리자 대시보드
+│   └── MyPage.jsx                # 마이페이지
 ├── axiosConfig.js          # Axios 인터셉터 설정
 ├── App.jsx                 # 라우팅 설정
 └── main.jsx                # 앱 진입점
@@ -458,13 +456,11 @@ docker run -d --name podo-redis -p 6379:6379 redis:latest
 ### 2. MySQL 설정
 ```sql
 CREATE DATABASE podo;
-CREATE USER 'podo_user'@'localhost' IDENTIFIED BY 'your_password';
-GRANT ALL PRIVILEGES ON podo.* TO 'podo_user'@'localhost';
 ```
 
 ### 3. Backend 실행
 ```bash
-# application.properties 설정 후
+# application.properties에서 DB 정보 설정 후
 ./gradlew bootRun
 ```
 
@@ -491,10 +487,15 @@ Swagger를 통해 모든 API 엔드포인트를 테스트할 수 있습니다.
 **주요 엔드포인트:**
 - `POST /api/auth/login` - 로그인
 - `POST /api/auth/signup` - 회원가입
+- `POST /api/auth/logout` - 로그아웃
 - `GET /api/travels/my` - 내 여행 목록
 - `POST /api/travels` - 여행 생성
-- `PUT /api/schedules/{id}` - 일정 수정
-- `GET /api/travels/stats` - 통계 조회
+- `POST /api/travels/{travelId}/join` - 여행 참가
+- `GET /api/schedules/{travelId}/{day}` - 일정 조회
+- `POST /api/schedules/{travelId}/{day}/optimize` - 동선 최적화
+- `POST /api/votes/{travelId}` - 투표 생성
+- `GET /api/items/{travelId}` - 짐 체크리스트 조회
+- `GET /api/admin/stats` - 관리자 통계
 
 ---
 
@@ -504,33 +505,31 @@ Swagger를 통해 모든 API 엔드포인트를 테스트할 수 있습니다.
 
 ### Backend
 - **Spring Security + JWT**: Stateless 인증 구현
-- **JPA 낙관적 락**: 동시성 제어
+- **Redis Session**: 세션 TTL 관리 및 자동 로그아웃
 - **Redis Caching**: 성능 최적화
 - **WebSocket (STOMP)**: 실시간 통신
-- **TSP 알고리즘**: 동선 최적화
+- **TSP 알고리즘**: Nearest Neighbor + Haversine 거리 계산
+- **Swagger**: API 문서 자동화
 
 ### Frontend
-- **React Hooks**: useState, useEffect, useContext
+- **React Hooks**: useState, useEffect
 - **Axios Interceptor**: 인증 토큰 자동 관리
-- **Zustand**: 경량 상태 관리
-- **Drag & Drop API**: 일정 편집 UX
-- **Recharts**: 데이터 시각화
+- **WebSocket Client**: STOMP.js를 이용한 실시간 통신
+- **Recharts**: 통계 데이터 시각화
 
 ### DevOps
 - **Docker**: Redis 컨테이너 관리
-- **Swagger**: API 문서 자동화
-- **Git**: 버전 관리 및 브랜치 전략
+- **Git**: 버전 관리
 
 ---
 
 ## 🔮 향후 계획
 
 - [ ] OAuth2 소셜 로그인 (Kakao, Google)
-- [ ] PWA 지원 (오프라인 모드)
-- [ ] 일정 공유 링크 생성 (초대 코드)
+- [ ] 비용 정산 기능
+- [ ] 일정 공유 링크 생성
 - [ ] 다국어 지원 (i18n)
-- [ ] 모바일 앱 (React Native)
-- [ ] CI/CD 파이프라인 구축 (GitHub Actions)
+- [ ] CI/CD 파이프라인 구축
 - [ ] AWS 배포 (EC2, RDS, S3)
 
 ---
@@ -538,15 +537,6 @@ Swagger를 통해 모든 API 엔드포인트를 테스트할 수 있습니다.
 ## 📄 라이센스
 
 이 프로젝트는 개인 포트폴리오 용도로 제작되었습니다.
-
----
-
-## 👤 Contact
-
-**개발자:** [Your Name]
-**Email:** your.email@example.com
-**GitHub:** https://github.com/yourusername
-**Portfolio:** https://yourportfolio.com
 
 ---
 
