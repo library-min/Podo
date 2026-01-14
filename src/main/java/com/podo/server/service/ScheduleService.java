@@ -6,6 +6,7 @@ import com.podo.server.entity.Travels;
 import com.podo.server.repository.ScheduleRepository;
 import com.podo.server.repository.TravelRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -13,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ScheduleService {
@@ -26,7 +28,7 @@ public class ScheduleService {
      */
     @Cacheable(value = "schedules", key = "#travelId + '-' + #day")
     public List<Schedule> getSchedules(Long travelId, int day) {
-        System.out.println("🔍 DB에서 일정 조회: travelId=" + travelId + ", day=" + day);
+        log.debug("Fetching schedules from DB: travelId={}, day={}", travelId, day);
         return scheduleRepository.findByTravel_TravelIdAndDayOrderByTimeAsc(travelId, day);
     }
 
@@ -53,7 +55,7 @@ public class ScheduleService {
                 request.getAddress(),
                 travel
         );
-        System.out.println("✅ 일정 생성 - 캐시 삭제: travelId=" + travelId + ", day=" + request.getDay());
+        log.info("Creating schedule - Cache evicted: travelId={}, day={}", travelId, request.getDay());
         return scheduleRepository.save(schedule);
     }
 
@@ -75,7 +77,7 @@ public class ScheduleService {
         schedule.setX(request.getX());
         schedule.setY(request.getY());
 
-        System.out.println("✅ 일정 수정 - 모든 캐시 삭제");
+        log.info("Updating schedule - All caches evicted");
         return scheduleRepository.save(schedule);
     }
 
@@ -86,7 +88,7 @@ public class ScheduleService {
     @Transactional
     @CacheEvict(value = "schedules", allEntries = true)
     public void deleteSchedule(Long scheduleId) {
-        System.out.println("✅ 일정 삭제 - 모든 캐시 삭제");
+        log.info("Deleting schedule - All caches evicted");
         scheduleRepository.deleteById(scheduleId);
     }
 }

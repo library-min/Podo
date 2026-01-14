@@ -1,15 +1,18 @@
 package com.podo.server.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter; // 👈 추가
+import lombok.Setter;
 import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
-@Getter @Setter // 👈 추가
+@Getter @Setter
 @NoArgsConstructor
 @Table(name = "travels")
 public class Travels implements Serializable {
@@ -21,30 +24,41 @@ public class Travels implements Serializable {
     private Long travelId;
 
     @Column(nullable = false)
-    private String title;       // 여행 제목
+    private String title;
 
     @Column(name = "start_date")
-    private LocalDate startDate; // 여행 시작일
+    private LocalDate startDate;
 
     @Column(name = "end_date")
-    private LocalDate endDate;   // 여행 종료일
+    private LocalDate endDate;
 
     @Column(name = "invite_code", unique = true, nullable = false)
-    private String inviteCode;   // 초대 코드
+    private String inviteCode;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
-    
-    @Column(name = "owner_email")
-    private String ownerEmail; // 방장(생성자) 이메일
 
-    // 👇 [추가된 부분] 생성자: 이걸 만들어야 Service에서 데이터를 넣을 수 있습니다!
+    @Column(name = "owner_email")
+    private String ownerEmail;
+
+    /**
+     * 이 여행에 참여한 사용자 목록 (다대다 양방향 관계)
+     * Users 엔티티의 travels 필드와 연결됨
+     * JSON 직렬화 시 순환 참조 방지를 위해 @JsonIgnore 적용
+     */
+    @JsonIgnore
+    @ManyToMany(mappedBy = "travels")
+    private List<Users> users = new ArrayList<>();
+
+    /**
+     * 여행 생성 시 사용하는 생성자
+     */
     public Travels(String title, LocalDate startDate, LocalDate endDate, String inviteCode, String ownerEmail) {
         this.title = title;
         this.startDate = startDate;
         this.endDate = endDate;
         this.inviteCode = inviteCode;
         this.ownerEmail = ownerEmail;
-        this.createdAt = LocalDateTime.now(); // 생성 시간은 현재 시간으로 자동 설정
+        this.createdAt = LocalDateTime.now();
     }
 }

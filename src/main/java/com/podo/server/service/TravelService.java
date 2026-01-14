@@ -6,12 +6,14 @@ import com.podo.server.entity.Travels;
 import com.podo.server.repository.MemberRepository;
 import com.podo.server.repository.TravelRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TravelService {
@@ -19,7 +21,7 @@ public class TravelService {
     private final TravelRepository travelRepository;
     private final MemberRepository memberRepository;
     private final com.podo.server.repository.UserRepository userRepository;
-    private final com.podo.server.repository.ScheduleRepository scheduleRepository; // 👈 주입 추가
+    private final com.podo.server.repository.ScheduleRepository scheduleRepository;
 
     @Transactional
     public Long createTravel(TravelRequest request, String creatorEmail, String creatorName) {
@@ -29,22 +31,23 @@ public class TravelService {
                 request.getStartDate(),
                 request.getEndDate(),
                 randomCode,
-                creatorEmail // 방장 이메일 저장
+                creatorEmail
         );
         Travels savedTravel = travelRepository.save(travel);
 
-        // 생성자를 멤버로 자동 추가 (중복 체크)
+        // Add creator as a member
         if (!memberRepository.existsByTravel_TravelIdAndEmail(savedTravel.getTravelId(), creatorEmail)) {
             Member creator = new Member(creatorName, creatorEmail, savedTravel);
             memberRepository.save(creator);
         }
 
-        // users_travels 매핑 테이블에 추가
+        // Link to User
         userRepository.findByEmail(creatorEmail).ifPresent(user -> {
             user.addTravel(savedTravel);
             userRepository.save(user);
         });
 
+        log.info("Travel created: ID={}, Title={}, Creator={}", savedTravel.getTravelId(), savedTravel.getTitle(), creatorEmail);
         return savedTravel.getTravelId();
     }
 
@@ -52,47 +55,64 @@ public class TravelService {
         return travelRepository.findAll();
     }
 
-    // 내 여행 목록 조회
     public List<Travels> getMyTravels(String email) {
         return travelRepository.findByMemberEmail(email);
     }
 
-    // 특정 여행 조회
     public Travels getTravelById(Long travelId) {
         return travelRepository.findById(travelId)
-                .orElseThrow(() -> new RuntimeException("여행을 찾을 수 없습니다."));
+                .orElseThrow(() -> new RuntimeException("Travel not found"));
     }
 
-    // 초대코드로 여행 조회
     public Travels getTravelByInviteCode(String inviteCode) {
         return travelRepository.findByInviteCode(inviteCode)
-                .orElseThrow(() -> new RuntimeException("유효하지 않은 초대코드입니다."));
+                .orElseThrow(() -> new RuntimeException("Invalid invite code"));
     }
 
-    // 여행 참가
     @Transactional
     public void joinTravel(Long travelId, String email, String nickname) {
         Travels travel = getTravelById(travelId);
 
-        // 중복 체크
         if (memberRepository.existsByTravel_TravelIdAndEmail(travelId, email)) {
-            throw new RuntimeException("이미 참가한 여행입니다.");
+            throw new RuntimeException("Already joined this travel");
         }
 
-        // 멤버 추가
         Member newMember = new Member(nickname, email, travel);
         memberRepository.save(newMember);
 
-        // users_travels 매핑 테이블에 추가
         userRepository.findByEmail(email).ifPresent(user -> {
             user.addTravel(travel);
             userRepository.save(user);
         });
+        
+        log.info("Member joined: TravelId={}, Email={}", travelId, email);
     }
 
-    // 통계 조회
+    @Transactional
+    public Travels updateTravel(Long travelId, Travels request) {
+        Travels travel = getTravelById(travelId);
+        
+        if (request.getTitle() != null) travel.setTitle(request.getTitle());
+        if (request.getStartDate() != null) travel.setStartDate(request.getStartDate());
+        if (request.getEndDate() != null) travel.setEndDate(request.getEndDate());
+        
+        log.info("Travel updated: ID={}", travelId);
+        return travel;
+    }
+
+    @Transactional
+    public void deleteTravel(Long travelId, String email) {
+        Travels travel = getTravelById(travelId);
+
+        if (travel.getOwnerEmail() != null && !travel.getOwnerEmail().equals(email)) {
+            throw new RuntimeException("Only the owner can delete the travel");
+        }
+
+        travelRepository.delete(travel);
+        log.info("Travel deleted: ID={}, By={}", travelId, email);
+    }
+
     public com.podo.server.dto.StatsResponse getStats(String email) {
-        // 1. 월별 여행 빈도 (Java에서 집계)
         List<Travels> myTravels = getMyTravels(email);
         java.util.Map<Integer, Long> monthlyCounts = myTravels.stream()
                 .collect(java.util.stream.Collectors.groupingBy(
@@ -108,7 +128,6 @@ public class TravelService {
             ));
         }
 
-        // 2. 일정 유형 분포 (DB 쿼리)
         List<Object[]> typeCounts = scheduleRepository.countTypesByMemberEmail(email);
         List<com.podo.server.dto.StatsResponse.ChartData> typeData = typeCounts.stream()
                 .map(row -> new com.podo.server.dto.StatsResponse.ChartData(

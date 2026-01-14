@@ -16,7 +16,10 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -64,12 +67,41 @@ public class AdminController {
             long totalTravels = travelRepository.count();
 
             // 오늘 생성된 여행 방 개수
-            LocalDateTime startOfDay = LocalDateTime.of(LocalDate.now(), LocalTime.MIN); // 오늘 00:00:00
-            LocalDateTime endOfDay = LocalDateTime.of(LocalDate.now(), LocalTime.MAX);   // 오늘 23:59:59
-            long todayTravels = travelRepository.countTodayTravels(startOfDay, endOfDay);
+            LocalDateTime startOfDay = LocalDateTime.of(LocalDate.now(), LocalTime.MIN);
+            LocalDateTime endOfDay = LocalDateTime.of(LocalDate.now(), LocalTime.MAX);
+            long todayTravels = travelRepository.countByCreatedAtBetween(startOfDay, endOfDay);
 
             // 관리자 수
             long totalAdmins = userRepository.countByRole(Role.ADMIN);
+
+            // 최근 6개월간 통계 데이터 생성 (차트용)
+            List<Map<String, Object>> chartData = new ArrayList<>();
+            LocalDate today = LocalDate.now();
+
+            for (int i = 5; i >= 0; i--) {
+                // 6개월 전부터 현재 월까지
+                LocalDate targetMonth = today.minusMonths(i);
+
+                // 해당 월의 시작일과 마지막일 계산
+                LocalDate startOfMonth = targetMonth.withDayOfMonth(1);
+                LocalDate endOfMonth = targetMonth.withDayOfMonth(targetMonth.lengthOfMonth());
+
+                LocalDateTime start = startOfMonth.atStartOfDay();
+                LocalDateTime end = endOfMonth.atTime(LocalTime.MAX);
+
+                long monthlyUsers = userRepository.countByCreatedAtBetween(start, end);
+                long monthlyTravels = travelRepository.countByCreatedAtBetween(start, end);
+
+                // 날짜 형식: "2025.12" 형태로 표시
+                String dateLabel = String.format("%d.%02d", targetMonth.getYear(), targetMonth.getMonthValue());
+
+                Map<String, Object> dataPoint = new HashMap<>();
+                dataPoint.put("date", dateLabel);
+                dataPoint.put("users", monthlyUsers);
+                dataPoint.put("travels", monthlyTravels);
+
+                chartData.add(dataPoint);
+            }
 
             // JSON 응답 생성
             Map<String, Object> stats = new HashMap<>();
@@ -77,6 +109,7 @@ public class AdminController {
             stats.put("totalTravels", totalTravels);
             stats.put("todayTravels", todayTravels);
             stats.put("totalAdmins", totalAdmins);
+            stats.put("chartData", chartData);
 
             return ResponseEntity.ok(stats);
 

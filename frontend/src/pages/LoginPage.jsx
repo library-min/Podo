@@ -61,7 +61,10 @@ function LoginPage() {
 
             showAlert('환영합니다! 👋', `${nickname}님, 로그인에 성공했습니다!`, 'success', () => navigate('/dashboard'));
         } catch (err) {
-            setError(err.response?.data || '이메일 또는 비밀번호가 틀렸습니다.');
+            console.error('Login error:', err);
+            // 백엔드에서 반환한 에러 메시지 사용, 없으면 기본 메시지
+            const errorMessage = err.response?.data || '아이디 또는 비밀번호가 잘못되었습니다.';
+            setError(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -108,17 +111,17 @@ function LoginPage() {
                         {/* Email Input */}
                         <div>
                             <label htmlFor="email" className="block text-sm font-semibold text-gray-300 mb-2">
-                                이메일
+                                아이디 / 이메일
                             </label>
                             <div className="relative">
                                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
                                 <input
                                     id="email"
-                                    type="email"
+                                    type="text"
                                     name="email"
                                     value={formData.email}
                                     onChange={handleChange}
-                                    placeholder="email@example.com"
+                                    placeholder="아이디 또는 이메일을 입력하세요"
                                     required
                                     className="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-gray-500 focus:outline-none focus:border-primary/50 focus:bg-white/10 transition-all"
                                 />

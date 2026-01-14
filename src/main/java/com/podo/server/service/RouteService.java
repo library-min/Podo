@@ -3,6 +3,8 @@ package com.podo.server.service;
 import com.podo.server.entity.Schedule;
 import com.podo.server.repository.ScheduleRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,37 +13,68 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Service for route optimization and schedule management.
+ */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RouteService {
 
     private final ScheduleRepository scheduleRepository;
 
-    // ⚡ 동선 최적화 로직 (Nearest Neighbor 알고리즘)
+    /**
+     * Nearest Neighbor 알고리즘을 응용한 경로 최적화 로직.
+     * Haversine 공식을 사용하여 좌표 간 거리를 계산하고, Greedy 방식으로 최단 거리 경로를 재정렬함.
+     * (Time Complexity: O(N^2))
+     *
+     * @param travelId The ID of the travel plan
+     * @param day The specific day to optimize
+     */
     @Transactional
+    @CacheEvict(value = "schedules", key = "#travelId + '-' + #day")
     public void optimizeRoute(Long travelId, int day) {
-        // 1. 해당 날짜의 모든 일정을 가져옴
-        List<Schedule> originalList = scheduleRepository.findByTravel_TravelIdAndDayOrderByTimeAsc(travelId, day);
-        if (originalList.size() <= 1) return; // 일정이 1개 이하면 최적화 불필요
+        log.info("Optimizing route for travelId: {}, day: {}", travelId, day);
 
-        // 2. 시작점 설정 (가장 첫 번째 일정을 고정)
-        // 첫 번째 일정은 사용자가 "숙소 출발" 등으로 설정했을 가능성이 높으므로 유지
+        // 1. Retrieve all schedules for the specified day
+        List<Schedule> allSchedules = scheduleRepository.findByTravel_TravelIdAndDayOrderByTimeAsc(travelId, day);
+        if (allSchedules.size() <= 1) {
+            log.debug("Not enough schedules to optimize (size: {})", allSchedules.size());
+            return;
+        }
+
+        // 2. Filter schedules with valid coordinates
+        List<Schedule> schedulesWithCoords = new ArrayList<>();
+        List<Schedule> schedulesWithoutCoords = new ArrayList<>();
+
+        for (Schedule s : allSchedules) {
+            if (s.getX() != null && s.getY() != null && s.getX() != 0.0 && s.getY() != 0.0) {
+                schedulesWithCoords.add(s);
+            } else {
+                schedulesWithoutCoords.add(s);
+            }
+        }
+
+        // If no schedules with coordinates, cannot optimize
+        if (schedulesWithCoords.isEmpty()) {
+            log.warn("No schedules with valid coordinates to optimize");
+            return;
+        }
+
+        // 3. Optimize only schedules with coordinates using Nearest Neighbor algorithm
         List<Schedule> optimizedList = new ArrayList<>();
-        Schedule current = originalList.remove(0); 
+        List<Schedule> remaining = new ArrayList<>(schedulesWithCoords);
+
+        // Start with the first schedule (keep it as the starting point)
+        Schedule current = remaining.remove(0);
         optimizedList.add(current);
 
-        // 3. 가까운 곳 찾기 반복 (Greedy)
-        while (!originalList.isEmpty()) {
+        // 4. Find nearest neighbors iteratively (Greedy approach)
+        while (!remaining.isEmpty()) {
             Schedule nearest = null;
             double minDistance = Double.MAX_VALUE;
 
-            for (Schedule target : originalList) {
-                // 좌표가 없는 일정은 거리 계산에서 제외하고 맨 뒤로 보낼 수도 있지만, 
-                // 여기서는 좌표 있는 것들끼리 먼저 비교
-                if (current.getX() == null || current.getY() == null || target.getX() == null || target.getY() == null) {
-                    continue; 
-                }
-
+            for (Schedule target : remaining) {
                 double dist = calculateDistance(current.getY(), current.getX(), target.getY(), target.getX());
                 if (dist < minDistance) {
                     minDistance = dist;
@@ -49,45 +82,53 @@ public class RouteService {
                 }
             }
 
-            // 좌표가 없어서 nearest를 못 찾았거나 남은게 좌표 없는 것들뿐일 때
-            if (nearest == null) {
-                nearest = originalList.get(0); // 그냥 다음꺼 가져옴
+            if (nearest != null) {
+                optimizedList.add(nearest);
+                remaining.remove(nearest);
+                current = nearest;
+            } else {
+                // Should not happen, but just in case
+                break;
             }
-
-            // 선택된 일정을 결과 리스트에 추가
-            optimizedList.add(nearest);
-            originalList.remove(nearest);
-            current = nearest; // 기준점 이동
         }
 
-        // 4. 순서대로 시간 재설정
-        // 첫 일정의 시간을 기준으로 1시간 30분 간격으로 재배치 (단순화된 로직)
-        LocalTime startTime = parseTime(optimizedList.get(0).getTime()); 
-        if (startTime == null) startTime = LocalTime.of(10, 0); // 시간이 없으면 오전 10시 시작
+        // 5. Merge optimized list with schedules without coordinates
+        // Place schedules without coordinates at the end
+        optimizedList.addAll(schedulesWithoutCoords);
+
+        // 6. Reschedule times sequentially
+        LocalTime startTime = parseTime(allSchedules.get(0).getTime());
+        if (startTime == null) {
+            startTime = LocalTime.of(9, 0); // Default to 09:00 AM
+        }
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
 
         for (int i = 0; i < optimizedList.size(); i++) {
             Schedule s = optimizedList.get(i);
-            
-            // 첫 번째 일정 시간은 유지, 그 이후부터 시간 조정
-            if (i > 0) {
-                // 이전 일정 시간 + 1시간 30분 (이동 및 관람 시간 고려)
-                startTime = startTime.plusMinutes(90);
-                s.setTime(startTime.format(formatter));
-            } else {
-                // 첫 일정은 포맷만 통일
-                s.setTime(startTime.format(formatter));
-            }
-            
+
+            // Assign time with 90-minute intervals
+            LocalTime scheduleTime = startTime.plusMinutes(i * 90L);
+            s.setTime(scheduleTime.format(formatter));
+
             scheduleRepository.save(s);
+            log.debug("Schedule {} updated: {} at {}", s.getId(), s.getTitle(), s.getTime());
         }
+
+        log.info("Route optimization completed. {} schedules optimized.", optimizedList.size());
     }
 
-    // 📏 하버사인(Haversine) 공식: 두 지점(위도, 경도) 사이의 거리 계산 (단위: km)
-    // lat: y, lon: x
+    /**
+     * Calculates the distance between two points using the Haversine formula.
+     *
+     * @param lat1 Latitude of point 1
+     * @param lon1 Longitude of point 1
+     * @param lat2 Latitude of point 2
+     * @param lon2 Longitude of point 2
+     * @return Distance in kilometers
+     */
     private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
-        final int R = 6371; // 지구 반지름
+        final int R = 6371; // Earth radius in km
         double dLat = Math.toRadians(lat2 - lat1);
         double dLon = Math.toRadians(lon2 - lon1);
         double a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
@@ -100,13 +141,14 @@ public class RouteService {
     private LocalTime parseTime(String timeStr) {
         try {
             if (timeStr == null || timeStr.isEmpty()) return null;
-            // "9:00" 같은 경우 "09:00"으로 패딩 처리
+            // Pad "9:00" to "09:00"
             String[] parts = timeStr.split(":");
             if (parts.length == 2) {
                 return LocalTime.of(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]));
             }
             return null;
         } catch (Exception e) {
+            log.warn("Failed to parse time string: {}", timeStr);
             return null;
         }
     }

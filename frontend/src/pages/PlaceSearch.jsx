@@ -8,37 +8,33 @@ export default function PlaceSearch({ onSelect, onClose }) {
   const [markers, setMarkers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 지도 초기화
+  // Initialize Map & Load SDK
   useEffect(() => {
     const loadKakaoMapScript = () => {
       return new Promise((resolve, reject) => {
         if (window.kakao && window.kakao.maps) {
-          console.log('✅ Kakao SDK already loaded');
           resolve();
           return;
         }
 
         const existingScript = document.querySelector('script[src*="dapi.kakao.com"]');
         if (existingScript) {
-          console.log('Script tag exists, waiting for load...');
           existingScript.onload = () => resolve();
           existingScript.onerror = () => reject(new Error('Script load failed'));
           return;
         }
 
-        console.log('Loading Kakao Maps SDK...');
         const script = document.createElement('script');
         script.type = 'text/javascript';
         script.src = 'https://dapi.kakao.com/v2/maps/sdk.js?appkey=c1c7b561db27d2cac582842263059ce1&libraries=services&autoload=false';
         script.async = true;
 
         script.onload = () => {
-          console.log('✅ Kakao SDK script loaded');
           resolve();
         };
 
         script.onerror = () => {
-          console.error('❌ Failed to load Kakao SDK script');
+          console.error('Failed to load Kakao SDK script');
           reject(new Error('Failed to load Kakao Maps SDK'));
         };
 
@@ -67,11 +63,10 @@ export default function PlaceSearch({ onSelect, onClose }) {
             const newMap = new window.kakao.maps.Map(container, options);
             setMap(newMap);
             setIsLoading(false);
-            console.log('✅ 카카오맵 초기화 성공!');
           });
         })
         .catch((error) => {
-          console.error('❌ Map initialization failed:', error);
+          console.error('Map initialization failed:', error.message);
           setIsLoading(false);
         });
     };
@@ -79,7 +74,7 @@ export default function PlaceSearch({ onSelect, onClose }) {
     initMap();
   }, []);
 
-  // 검색 결과가 변경될 때마다 마커 업데이트
+  // Update markers when search results change
   useEffect(() => {
     if (!map || !window.kakao) return;
 

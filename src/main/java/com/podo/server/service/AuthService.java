@@ -35,14 +35,14 @@ public class AuthService {
         Optional<Users> userOpt = userRepository.findByEmail(email);
 
         if (userOpt.isEmpty()) {
-            throw new IllegalArgumentException("가입되지 않은 이메일입니다.");
+            throw new IllegalArgumentException("아이디 또는 비밀번호가 잘못되었습니다.");
         }
 
         Users user = userOpt.get();
 
         // 암호화된 비밀번호 검증
         if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new IllegalArgumentException("비밀번호가 틀렸습니다.");
+            throw new IllegalArgumentException("아이디 또는 비밀번호가 잘못되었습니다.");
         }
 
         return user;

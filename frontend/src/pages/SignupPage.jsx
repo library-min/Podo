@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Mail, Lock, User, Sparkles } from 'lucide-react';
+import { ArrowLeft, Mail, Lock, User, Sparkles, CheckCircle, XCircle } from 'lucide-react';
 import axios from 'axios';
 import AlertModal from '../components/AlertModal';
 
@@ -14,6 +14,11 @@ function SignupPage() {
     });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [emailStatus, setEmailStatus] = useState({
+        checking: false,
+        available: null,
+        message: ''
+    });
 
     // Alert State
     const [alertState, setAlertState] = useState({
@@ -45,10 +50,65 @@ function SignupPage() {
         setError('');
     };
 
+    // 이메일 중복 체크 (debounced)
+    useEffect(() => {
+        if (!formData.email || formData.email.length < 3) {
+            setEmailStatus({ checking: false, available: null, message: '' });
+            return;
+        }
+
+        // 이메일 형식 검증
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(formData.email)) {
+            setEmailStatus({ checking: false, available: false, message: '올바른 이메일 형식이 아닙니다.' });
+            return;
+        }
+
+        setEmailStatus({ checking: true, available: null, message: '확인 중...' });
+
+        const timeoutId = setTimeout(async () => {
+            try {
+                const response = await axios.get('http://localhost:8080/api/users/check-email', {
+                    params: { email: formData.email }
+                });
+
+                if (response.data.available) {
+                    setEmailStatus({
+                        checking: false,
+                        available: true,
+                        message: '사용 가능한 이메일입니다.'
+                    });
+                } else {
+                    setEmailStatus({
+                        checking: false,
+                        available: false,
+                        message: '이미 사용 중인 이메일입니다.'
+                    });
+                }
+            } catch (err) {
+                console.error('Email check error:', err);
+                setEmailStatus({
+                    checking: false,
+                    available: null,
+                    message: ''
+                });
+            }
+        }, 500); // 500ms delay
+
+        return () => clearTimeout(timeoutId);
+    }, [formData.email]);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
+
+        // 이메일 중복 체크
+        if (emailStatus.available === false) {
+            setError('이메일이 이미 사용 중입니다.');
+            setLoading(false);
+            return;
+        }
 
         if (formData.password !== formData.confirmPassword) {
             setError('비밀번호가 일치하지 않습니다.');
@@ -124,9 +184,37 @@ function SignupPage() {
                                     onChange={handleChange}
                                     placeholder="email@example.com"
                                     required
-                                    className="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-gray-500 focus:outline-none focus:border-primary/50 focus:bg-white/10 transition-all"
+                                    className={`w-full pl-12 pr-12 py-4 bg-white/5 border rounded-xl text-white placeholder:text-gray-500 focus:outline-none transition-all ${
+                                        emailStatus.available === true
+                                            ? 'border-green-500/50 focus:border-green-500'
+                                            : emailStatus.available === false
+                                            ? 'border-red-500/50 focus:border-red-500'
+                                            : 'border-white/10 focus:border-primary/50'
+                                    } focus:bg-white/10`}
                                 />
+                                {emailStatus.checking && (
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                                        <div className="w-5 h-5 border-2 border-gray-400/30 border-t-gray-400 rounded-full animate-spin"></div>
+                                    </div>
+                                )}
+                                {!emailStatus.checking && emailStatus.available === true && (
+                                    <CheckCircle className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-green-500" />
+                                )}
+                                {!emailStatus.checking && emailStatus.available === false && (
+                                    <XCircle className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-red-500" />
+                                )}
                             </div>
+                            {emailStatus.message && (
+                                <p className={`mt-2 text-sm flex items-center gap-1 ${
+                                    emailStatus.available === true
+                                        ? 'text-green-400'
+                                        : emailStatus.available === false
+                                        ? 'text-red-400'
+                                        : 'text-gray-400'
+                                }`}>
+                                    {emailStatus.message}
+                                </p>
+                            )}
                         </div>
 
                         {/* Nickname Input */}
@@ -199,7 +287,7 @@ function SignupPage() {
                         {/* Submit Button */}
                         <button
                             type="submit"
-                            disabled={loading}
+                            disabled={loading || emailStatus.available === false}
                             className="w-full py-4 bg-gradient-to-r from-primary to-purple-600 rounded-xl text-white font-semibold text-lg hover:shadow-2xl hover:shadow-primary/50 transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                         >
                             {loading ? (

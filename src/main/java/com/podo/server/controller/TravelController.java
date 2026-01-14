@@ -3,106 +3,99 @@ package com.podo.server.controller;
 import com.podo.server.dto.TravelRequest;
 import com.podo.server.entity.Travels;
 import com.podo.server.service.TravelService;
-import com.podo.server.repository.TravelRepository; // 👈 추가
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Tag(name = "여행 관리", description = "여행 생성, 조회, 참가 등 여행 관련 API")
+@Slf4j
+@Tag(name = "여행 관리", description = "Travel Management API")
 @CrossOrigin(origins = "http://localhost:5173")
 @RestController
 @RequiredArgsConstructor
 public class TravelController {
 
     private final TravelService travelService;
-    private final TravelRepository travelRepository; // 👈 추가
 
-    @Operation(summary = "여행 생성", description = "새로운 여행 방을 생성합니다. 생성자는 자동으로 멤버로 추가됩니다.")
+    @Operation(summary = "여행 생성", description = "Creates a new travel plan. Creator is automatically added as a member.")
     @PostMapping("/api/travels")
-    public ResponseEntity<String> createTravel(@RequestBody com.podo.server.dto.TravelRequest request) {
+    public ResponseEntity<String> createTravel(@RequestBody TravelRequest request) {
+        log.info("Request to create travel: {}", request.getTitle());
         Long travelId = travelService.createTravel(request, request.getCreatorEmail(), request.getCreatorName());
-        return ResponseEntity.ok("여행 방 생성 완료! ID: " + travelId);
+        return ResponseEntity.ok("Travel created! ID: " + travelId);
     }
 
-    @Operation(summary = "내 여행 목록 조회", description = "특정 사용자가 참여 중인 모든 여행을 조회합니다.")
+    @Operation(summary = "내 여행 목록 조회", description = "Retrieves all travels for a specific user.")
     @GetMapping("/api/travels/my")
     public ResponseEntity<List<Travels>> getMyTravels(
-        @Parameter(description = "사용자 이메일", required = true)
+        @Parameter(description = "User Email", required = true)
         @RequestParam String email) {
+        log.debug("Fetching travels for user: {}", email);
         List<Travels> travels = travelService.getMyTravels(email);
         return ResponseEntity.ok(travels);
     }
 
-    @Operation(summary = "전체 여행 조회", description = "모든 여행을 조회합니다 (관리자용)")
+    @Operation(summary = "전체 여행 조회", description = "Retrieves all travels (Admin only).")
     @GetMapping("/api/travels")
     public ResponseEntity<List<Travels>> getAllTravels() {
+        log.info("Fetching all travels");
         List<Travels> travels = travelService.getAllTravels();
         return ResponseEntity.ok(travels);
     }
 
-    @Operation(summary = "여행 상세 조회", description = "특정 여행의 상세 정보를 조회합니다.")
+    @Operation(summary = "여행 상세 조회", description = "Retrieves detailed information of a specific travel.")
     @GetMapping("/api/travels/{travelId}")
     public ResponseEntity<Travels> getTravelById(
-        @Parameter(description = "여행 ID", required = true)
+        @Parameter(description = "Travel ID", required = true)
         @PathVariable Long travelId) {
+        log.debug("Fetching travel detail: {}", travelId);
         Travels travel = travelService.getTravelById(travelId);
         return ResponseEntity.ok(travel);
     }
 
-    @Operation(summary = "초대코드로 여행 조회", description = "초대코드를 사용하여 여행 정보를 조회합니다.")
+    @Operation(summary = "초대코드로 여행 조회", description = "Retrieves travel info using an invite code.")
     @GetMapping("/api/travels/code/{inviteCode}")
     public ResponseEntity<Travels> getTravelByInviteCode(
-        @Parameter(description = "초대 코드", required = true)
+        @Parameter(description = "Invite Code", required = true)
         @PathVariable String inviteCode) {
+        log.debug("Fetching travel by code: {}", inviteCode);
         Travels travel = travelService.getTravelByInviteCode(inviteCode);
         return ResponseEntity.ok(travel);
     }
 
-    // 여행 참가
     @PostMapping("/api/travels/{travelId}/join")
     public ResponseEntity<String> joinTravel(@PathVariable Long travelId, @RequestParam String email, @RequestParam String nickname) {
+        log.info("Request to join travel: ID={}, Email={}", travelId, email);
         travelService.joinTravel(travelId, email, nickname);
-        return ResponseEntity.ok("여행 참가 완료!");
+        return ResponseEntity.ok("Joined successfully!");
     }
 
-    // 통계 조회 API
     @GetMapping("/api/travels/stats")
     public ResponseEntity<com.podo.server.dto.StatsResponse> getStats(@RequestParam String email) {
         return ResponseEntity.ok(travelService.getStats(email));
     }
 
-    // 여행 정보 수정
     @PutMapping("/api/travels/{travelId}")
     public ResponseEntity<Travels> updateTravel(@PathVariable Long travelId, @RequestBody Travels request) {
-        Travels travel = travelRepository.findById(travelId)
-                .orElseThrow(() -> new IllegalArgumentException("여행을 찾을 수 없습니다."));
-        
-        travel.setTitle(request.getTitle());
-        travel.setStartDate(request.getStartDate());
-        travel.setEndDate(request.getEndDate());
-        
-        return ResponseEntity.ok(travelRepository.save(travel));
+        log.info("Request to update travel: {}", travelId);
+        Travels updatedTravel = travelService.updateTravel(travelId, request);
+        return ResponseEntity.ok(updatedTravel);
     }
 
-    // 여행 삭제
     @DeleteMapping("/api/travels/{travelId}")
     public ResponseEntity<String> deleteTravel(@PathVariable Long travelId, @RequestParam String email) {
-        Travels travel = travelRepository.findById(travelId)
-                .orElseThrow(() -> new IllegalArgumentException("여행을 찾을 수 없습니다."));
-
-        // 방장인지 확인
-        if (travel.getOwnerEmail() != null && !travel.getOwnerEmail().equals(email)) {
-            return ResponseEntity.status(403).body("방장만 여행을 삭제할 수 있습니다.");
+        log.info("Request to delete travel: {}", travelId);
+        try {
+            travelService.deleteTravel(travelId, email);
+            return ResponseEntity.ok("Travel deleted successfully.");
+        } catch (RuntimeException e) {
+            log.error("Delete failed: {}", e.getMessage());
+            return ResponseEntity.status(403).body(e.getMessage());
         }
-
-        // 실제로는 연관된 Member, Schedule 등도 삭제해야 함 (Cascade 설정 권장)
-        // 일단 DB Cascade 설정이 되어있다고 가정하거나, 에러가 나면 수동 삭제 로직 추가 필요
-        travelRepository.deleteById(travelId);
-        return ResponseEntity.ok("여행이 삭제되었습니다.");
     }
-} // 클래스 끝
+}

@@ -166,11 +166,11 @@ function PackingList({ travelId }) {
             onChange={(e) => setCategory(e.target.value)}
             className="px-4 py-3 bg-dark/50 border border-white/5 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all cursor-pointer min-w-[120px]"
           >
-            <option value="음식" className="bg-dark">🍔 음식</option>
-            <option value="숙소" className="bg-dark">🏠 숙소</option>
-            <option value="장비" className="bg-dark">📷 장비</option>
-            <option value="의류" className="bg-dark">👕 의류</option>
-            <option value="기타" className="bg-dark">🎸 기타</option>
+            <option value="음식" className="bg-dark">음식</option>
+            <option value="숙소" className="bg-dark">숙소</option>
+            <option value="장비" className="bg-dark">장비</option>
+            <option value="의류" className="bg-dark">의류</option>
+            <option value="기타" className="bg-dark">기타</option>
           </select>
           <div className="flex-1">
             <input

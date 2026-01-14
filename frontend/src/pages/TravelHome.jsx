@@ -48,39 +48,46 @@ function TravelHome({ travel }) {
         });
     };
 
+    // D-Day 계산
     useEffect(() => {
-        // D-Day 계산
-        const startDate = new Date(travel.startDate);
+        if (!travel || !travel.startDate) return;
+
         const today = new Date();
-        const diffTime = startDate - today;
+        today.setHours(0, 0, 0, 0); // 시간 부분 제거
+
+        const startDate = new Date(travel.startDate);
+        startDate.setHours(0, 0, 0, 0); // 시간 부분 제거
+
+        const diffTime = startDate.getTime() - today.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
         setDDay(diffDays);
+    }, [travel]);
 
-        // 멤버 목록 불러오기
+    // 초기 데이터 로딩 (멤버, 메시지)
+    useEffect(() => {
+        if (!travel) return;
+
         fetchMembers();
-
-        // 채팅 메시지 불러오기
         fetchMessages();
+    }, [travel]);
 
-        // WebSocket 연결
+    useEffect(() => {
+        // WebSocket connection for Chat & Member updates
         const socket = new SockJS('http://localhost:8080/ws-stomp');
         const client = Stomp.over(socket);
 
         client.connect({}, () => {
-            console.log('✅ TravelHome WebSocket 연결 성공!');
-
-            // 멤버 변경 구독
+            // client.subscribe... logic
             client.subscribe(`/topic/travel/${travel.travelId}`, (message) => {
                 if (message.body === 'MEMBER_JOINED') {
                     fetchMembers();
                 }
             });
 
-            // 채팅 메시지 구독
             client.subscribe(`/topic/chat/${travel.travelId}`, (message) => {
                 const chatMessage = JSON.parse(message.body);
                 setMessages(prev => {
-                    // 중복 메시지 방지
                     const isDuplicate = prev.some(msg =>
                         msg.id === chatMessage.id ||
                         (msg.timestamp === chatMessage.timestamp && msg.sender === chatMessage.sender && msg.message === chatMessage.message)
@@ -100,7 +107,7 @@ function TravelHome({ travel }) {
         };
     }, [travel]);
 
-    // 채팅 메시지가 추가될 때마다 스크롤을 맨 아래로
+    // Auto-scroll to bottom on new message
     useEffect(() => {
         if (chatContainerRef.current) {
             chatContainerRef.current.scrollTo({
@@ -115,7 +122,7 @@ function TravelHome({ travel }) {
             const response = await axios.get(`http://localhost:8080/api/members/${travel.travelId}`);
             setMembers(response.data);
         } catch (error) {
-            console.error('멤버 불러오기 실패:', error);
+            console.error('Failed to fetch members:', error.message || 'Unknown error');
         }
     };
 
@@ -138,7 +145,7 @@ function TravelHome({ travel }) {
             setNewMember({ email: '' });
             setShowAddMember(false);
         } catch (error) {
-            console.error('초대 실패:', error);
+            console.error('Invitation failed:', error.message || 'Unknown error');
             showAlert('실패', '초대 전송에 실패했습니다.', 'error');
         }
     };
@@ -150,7 +157,7 @@ function TravelHome({ travel }) {
             await axios.delete(`http://localhost:8080/api/members/${memberId}`);
             fetchMembers();
         } catch (error) {
-            console.error('멤버 삭제 실패:', error);
+            console.error('Failed to delete member:', error.message || 'Unknown error');
         }
     };
 
@@ -165,22 +172,21 @@ function TravelHome({ travel }) {
             const response = await axios.get(`http://localhost:8080/api/chat/${travel.travelId}`);
             setMessages(response.data);
         } catch (error) {
-            console.error('메시지 불러오기 실패:', error);
+            console.error('Failed to fetch messages:', error.message || 'Unknown error');
         }
     };
 
-    // 1. 파일 선택 핸들러 (업로드 X, 상태 저장 O)
+    // 1. File Selection Handler
     const handleFileSelect = (e) => {
         const file = e.target.files[0];
         if (file) {
             setSelectedFile(file);
         }
-        e.target.value = ''; // 같은 파일 다시 선택 가능하게 초기화
+        e.target.value = ''; 
     };
 
-    // 2. 메시지 전송 핸들러 (텍스트 + 이미지)
+    // 2. Send Message Handler (Text + Image)
     const sendMessage = async () => {
-        // 메시지 전송 로직은 HTTP API를 사용하므로 소켓 연결 여부와 상관없이 전송 시도
         if (!newMessage.trim() && !selectedFile) return;
 
         const userEmail = localStorage.getItem('userEmail');
@@ -188,7 +194,7 @@ function TravelHome({ travel }) {
         const senderName = userNickname || (userEmail ? userEmail.split('@')[0] : 'Unknown');
 
         try {
-            // A. 이미지가 있다면 먼저 업로드 후 전송
+            // A. Upload Image first if exists
             if (selectedFile) {
                 const formData = new FormData();
                 formData.append('file', selectedFile);
@@ -207,7 +213,7 @@ function TravelHome({ travel }) {
                 await axios.post(`http://localhost:8080/api/chat/${travel.travelId}`, imageMessage);
             }
 
-            // B. 텍스트가 있다면 전송
+            // B. Send Text
             if (newMessage.trim()) {
                 const textMessage = {
                     travelId: travel.travelId,
@@ -218,12 +224,11 @@ function TravelHome({ travel }) {
                 await axios.post(`http://localhost:8080/api/chat/${travel.travelId}`, textMessage);
             }
 
-            // 초기화
             setNewMessage('');
             setSelectedFile(null);
 
         } catch (error) {
-            console.error('메시지 전송 실패:', error);
+            console.error('Message send failed:', error.message || 'Unknown error');
             showAlert('오류', '메시지 전송 중 문제가 발생했습니다.', 'error');
         }
     };

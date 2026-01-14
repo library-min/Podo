@@ -12,19 +12,9 @@ const AdminDashboard = () => {
     totalUsers: 0,
     totalTravels: 0,
     todayTravels: 0,
-    totalAdmins: 0
+    totalAdmins: 0,
+    chartData: [] // Initialize with empty array
   });
-
-  // 최근 7일간 가입자 수 (임시 데이터 - 추후 실제 데이터로 교체 가능)
-  const chartData = [
-    { date: '01/03', users: 12, travels: 5 },
-    { date: '01/04', users: 19, travels: 8 },
-    { date: '01/05', users: 15, travels: 6 },
-    { date: '01/06', users: 25, travels: 12 },
-    { date: '01/07', users: 22, travels: 10 },
-    { date: '01/08', users: 30, travels: 15 },
-    { date: '01/09', users: 28, travels: 13 }
-  ];
 
   useEffect(() => {
     // 권한 확인
@@ -151,10 +141,10 @@ const AdminDashboard = () => {
           <div className="p-8 rounded-3xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 backdrop-blur-sm">
             <div className="flex items-center gap-2 mb-6">
               <TrendingUp className="w-6 h-6 text-primary" />
-              <h2 className="text-2xl font-bold text-white">최근 7일간 가입자 추이</h2>
+              <h2 className="text-2xl font-bold text-white">최근 6개월간 가입자 추이</h2>
             </div>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData}>
+              <LineChart data={stats.chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
                 <XAxis
                   dataKey="date"
@@ -164,6 +154,7 @@ const AdminDashboard = () => {
                 <YAxis
                   stroke="#9CA3AF"
                   style={{ fontSize: '12px' }}
+                  allowDecimals={false}
                 />
                 <Tooltip
                   contentStyle={{
@@ -194,10 +185,10 @@ const AdminDashboard = () => {
           <div className="p-8 rounded-3xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 backdrop-blur-sm">
             <div className="flex items-center gap-2 mb-6">
               <Plane className="w-6 h-6 text-purple-400" />
-              <h2 className="text-2xl font-bold text-white">최근 7일간 여행 생성 추이</h2>
+              <h2 className="text-2xl font-bold text-white">최근 6개월간 여행 생성 추이</h2>
             </div>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={chartData}>
+              <BarChart data={stats.chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
                 <XAxis
                   dataKey="date"
@@ -207,6 +198,7 @@ const AdminDashboard = () => {
                 <YAxis
                   stroke="#9CA3AF"
                   style={{ fontSize: '12px' }}
+                  allowDecimals={false}
                 />
                 <Tooltip
                   contentStyle={{

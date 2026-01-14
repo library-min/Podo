@@ -5,6 +5,7 @@
     "tailwindcss": "^4.1.18"
   },
   "dependencies": {
-    "lucide-react": "^0.562.0"
+    "lucide-react": "^0.562.0",
+    "react-kakao-maps-sdk": "^1.2.0"
   }
 }

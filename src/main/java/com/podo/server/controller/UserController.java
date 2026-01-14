@@ -4,79 +4,85 @@ import com.podo.server.entity.Users;
 import com.podo.server.entity.Member;
 import com.podo.server.repository.UserRepository;
 import com.podo.server.repository.MemberRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/users")
+@RequiredArgsConstructor
 @CrossOrigin(origins = "http://localhost:5173")
 public class UserController {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final MemberRepository memberRepository;
 
-    @Autowired
-    private MemberRepository memberRepository;
+    // Check Email Availability
+    @GetMapping("/check-email")
+    public Map<String, Boolean> checkEmailAvailability(@RequestParam String email) {
+        log.info("Checking email availability: {}", email);
+        boolean exists = userRepository.existsByEmail(email);
+        log.debug("Email {} exists: {}", email, exists);
+        return Map.of("available", !exists);
+    }
 
-    // 내 정보 조회
+    // Get User Info
     @GetMapping("/{email}")
     public Users getUserInfo(@PathVariable String email) {
-        System.out.println("===== 사용자 정보 조회 요청 =====");
-        System.out.println("받은 이메일: " + email);
+        log.info("Request for user info: {}", email);
 
         Users user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + email));
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + email));
 
-        System.out.println("조회된 사용자: " + user.getEmail() + " / " + user.getNickname());
+        log.debug("User found: {} / {}", user.getEmail(), user.getNickname());
         return user;
     }
 
-    // 닉네임 변경
+    // Update Nickname
     @PatchMapping("/{email}")
     public Users updateNickname(@PathVariable String email, @RequestBody Map<String, String> body) {
-        System.out.println("===== 닉네임 변경 요청 =====");
-        System.out.println("받은 이메일: " + email);
-        System.out.println("요청 바디: " + body);
+        log.info("Request to update nickname for: {}", email);
+        log.debug("Request body: {}", body);
 
         Users user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + email));
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + email));
 
         String newNickname = body.get("nickname");
-        System.out.println("변경할 닉네임: " + newNickname);
+        log.info("New nickname: {}", newNickname);
 
         if (newNickname != null && !newNickname.trim().isEmpty()) {
-            // 1. User 테이블 닉네임 변경
+            // 1. Update Nickname in Users table
             user.setNickname(newNickname);
             Users savedUser = userRepository.save(user);
 
-            // 2. Member 테이블(각 여행의 참여자 정보)의 이름도 일괄 변경
+            // 2. Batch update names in Member table
             List<Member> members = memberRepository.findByEmail(email);
             for (Member member : members) {
                 member.setName(newNickname);
             }
             memberRepository.saveAll(members);
 
-            System.out.println("닉네임 변경 완료 (Member 테이블 포함): " + savedUser.getNickname());
+            log.info("Nickname update complete (including Member table): {}", savedUser.getNickname());
             return savedUser;
         }
 
-        throw new IllegalArgumentException("유효하지 않은 닉네임입니다.");
+        throw new IllegalArgumentException("Invalid nickname");
     }
 
-    // 회원탈퇴
+    // Delete User
     @DeleteMapping("/{email}")
     public String deleteUser(@PathVariable String email) {
-        System.out.println("===== 회원탈퇴 요청 =====");
-        System.out.println("받은 이메일: " + email);
+        log.info("Request to delete user: {}", email);
 
         Users user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + email));
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + email));
 
         userRepository.delete(user);
-        System.out.println("회원탈퇴 완료: " + email);
-        return "회원탈퇴가 완료되었습니다.";
+        log.info("User deleted: {}", email);
+        return "User deletion completed.";
     }
 }

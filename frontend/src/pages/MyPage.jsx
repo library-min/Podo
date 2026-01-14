@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { User, Mail, Calendar, Save, Camera, Sparkles, MapPin, ArrowRight, UserX } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { User, Mail, Calendar, Save, Camera, Sparkles, MapPin, ArrowRight, UserX, CheckCircle } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from '../components/Navbar';
@@ -11,7 +11,6 @@ function MyPage() {
     const [loading, setLoading] = useState(true);
     const [nickname, setNickname] = useState('');
     const [isEditing, setIsEditing] = useState(false);
-    const [stats, setStats] = useState({ travelCount: 0 });
     const [travels, setTravels] = useState([]);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -53,8 +52,7 @@ function MyPage() {
             setUser(response.data);
             setNickname(response.data.nickname);
         } catch (error) {
-            console.error('정보 로딩 실패:', error);
-            console.error('에러 상세:', error.response?.data);
+            console.error('Failed to load user info:', error.message);
         } finally {
             setLoading(false);
         }
@@ -62,24 +60,42 @@ function MyPage() {
 
     const fetchUserStats = async () => {
         try {
-            // 내 여행 목록 가져오기
             const response = await axios.get(`http://localhost:8080/api/travels/my?email=${userEmail}`);
-            setStats({ travelCount: response.data.length });
             setTravels(response.data);
         } catch (error) {
-            console.error('통계 로딩 실패:', error);
+            console.error('Failed to load stats:', error.message);
         }
     };
+
+    // 여행을 날짜 기준으로 진행 중 / 완료로 분류
+    const { ongoingTravels, completedTravels } = useMemo(() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const ongoing = [];
+        const completed = [];
+
+        travels.forEach(travel => {
+            const endDate = new Date(travel.endDate);
+            endDate.setHours(0, 0, 0, 0);
+
+            if (endDate < today) {
+                completed.push(travel);
+            } else {
+                ongoing.push(travel);
+            }
+        });
+
+        return { ongoingTravels: ongoing, completedTravels: completed };
+    }, [travels]);
 
     const handleUpdateNickname = async () => {
         try {
             // 이메일을 URL 인코딩하여 전송
             const encodedEmail = encodeURIComponent(userEmail);
-            const response = await axios.patch(`http://localhost:8080/api/users/${encodedEmail}`, {
+            await axios.patch(`http://localhost:8080/api/users/${encodedEmail}`, {
                 nickname: nickname
             });
-
-            console.log('닉네임 변경 성공:', response.data);
 
             // 로컬 스토리지 업데이트 및 알림
             localStorage.setItem('userNickname', nickname);
@@ -89,8 +105,7 @@ function MyPage() {
                 window.location.reload();
             });
         } catch (error) {
-            console.error('업데이트 실패:', error);
-            console.error('에러 상세:', error.response?.data);
+            console.error('Update failed:', error.response?.data || error.message);
             const errorMsg = error.response?.data || '닉네임 변경에 실패했습니다.';
             showAlert('변경 실패', errorMsg, 'error');
         }
@@ -111,7 +126,7 @@ function MyPage() {
                 navigate('/');
             });
         } catch (error) {
-            console.error('회원탈퇴 실패:', error);
+            console.error('Account deletion failed:', error.message);
             showAlert('탈퇴 실패', '회원탈퇴에 실패했습니다.', 'error');
         }
     };
@@ -158,11 +173,11 @@ function MyPage() {
 
                             <div className="grid grid-cols-2 gap-4 border-t border-white/10 pt-6">
                                 <div className="text-center">
-                                    <p className="text-2xl font-bold text-primary">{stats.travelCount}</p>
+                                    <p className="text-2xl font-bold text-primary">{ongoingTravels.length}</p>
                                     <p className="text-xs text-gray-500">참여 중인 여행</p>
                                 </div>
                                 <div className="text-center border-l border-white/10">
-                                    <p className="text-2xl font-bold text-purple-400">0</p>
+                                    <p className="text-2xl font-bold text-purple-400">{completedTravels.length}</p>
                                     <p className="text-xs text-gray-500">완료한 여행</p>
                                 </div>
                             </div>
@@ -256,24 +271,24 @@ function MyPage() {
                     </div>
                 </div>
 
-                {/* My Travels Section */}
+                {/* Ongoing Travels Section */}
                 <div className="mb-8">
                     <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
                         <MapPin className="w-6 h-6 text-primary" />
                         참여 중인 여행
                     </h3>
-                    
-                    {travels.length === 0 ? (
+
+                    {ongoingTravels.length === 0 ? (
                         <div className="p-8 rounded-3xl bg-white/5 border border-white/10 border-dashed text-center">
-                            <p className="text-gray-400 mb-4">아직 참여 중인 여행이 없습니다.</p>
+                            <p className="text-gray-400 mb-4">현재 참여 중인 여행이 없습니다.</p>
                             <Link to="/dashboard" className="text-primary hover:text-purple-400 font-semibold">
                                 여행 만들기 →
                             </Link>
                         </div>
                     ) : (
                         <div className="grid md:grid-cols-2 gap-4">
-                            {travels.map((travel) => (
-                                <div 
+                            {ongoingTravels.map((travel) => (
+                                <div
                                     key={travel.travelId}
                                     onClick={() => navigate(`/travel/${travel.travelId}/home`)}
                                     className="group p-6 rounded-2xl bg-white/5 border border-white/10 hover:border-primary/50 hover:bg-white/10 transition-all cursor-pointer flex items-center justify-between"
@@ -295,6 +310,39 @@ function MyPage() {
                         </div>
                     )}
                 </div>
+
+                {/* Completed Travels Section */}
+                {completedTravels.length > 0 && (
+                    <div className="mb-8">
+                        <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+                            <CheckCircle className="w-6 h-6 text-purple-400" />
+                            완료한 여행
+                        </h3>
+
+                        <div className="grid md:grid-cols-2 gap-4">
+                            {completedTravels.map((travel) => (
+                                <div
+                                    key={travel.travelId}
+                                    onClick={() => navigate(`/travel/${travel.travelId}/home`)}
+                                    className="group p-6 rounded-2xl bg-white/5 border border-white/10 hover:border-purple-400/50 hover:bg-white/10 transition-all cursor-pointer flex items-center justify-between opacity-80"
+                                >
+                                    <div>
+                                        <h4 className="text-lg font-bold text-white mb-1 group-hover:text-purple-400 transition-colors">
+                                            {travel.title}
+                                        </h4>
+                                        <div className="flex items-center gap-2 text-sm text-gray-400">
+                                            <Calendar className="w-4 h-4" />
+                                            <span>{travel.startDate} ~ {travel.endDate}</span>
+                                        </div>
+                                    </div>
+                                    <div className="p-3 rounded-full bg-white/5 group-hover:bg-purple-400/20 group-hover:text-purple-400 transition-all">
+                                        <CheckCircle className="w-5 h-5" />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* 회원탈퇴 확인 모달 */}

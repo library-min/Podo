@@ -8,10 +8,13 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @Tag(name = "일정 관리", description = "여행 일정 CRUD 및 최적화 API (Redis 캐싱 적용)")
 @CrossOrigin(origins = "http://localhost:5173")
 @RestController
@@ -21,6 +24,7 @@ public class ScheduleController {
 
     private final ScheduleService scheduleService;
     private final RouteService routeService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Operation(
         summary = "일정 조회 (캐싱 적용)",
@@ -73,6 +77,11 @@ public class ScheduleController {
     public void optimizeSchedule(
         @Parameter(description = "여행 ID", required = true) @PathVariable Long travelId,
         @Parameter(description = "여행 일차", required = true) @PathVariable int day) {
+        log.info("Optimizing schedule for travelId: {}, day: {}", travelId, day);
         routeService.optimizeRoute(travelId, day);
+
+        // Send WebSocket notification to refresh schedules
+        messagingTemplate.convertAndSend("/topic/travel/" + travelId, "SCHEDULE_OPTIMIZED");
+        log.debug("WebSocket notification sent for schedule optimization");
     }
 }

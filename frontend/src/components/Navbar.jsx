@@ -57,7 +57,7 @@ export default function Navbar() {
       const unread = response.data.filter(n => !n.read).length;
       setUnreadCount(unread);
     } catch (error) {
-      console.error('알림 불러오기 실패:', error);
+      console.error('Failed to fetch notifications:', error.message);
     }
   };
 
@@ -66,7 +66,6 @@ export default function Navbar() {
     const stompClient = Stomp.over(socket);
 
     stompClient.connect({}, () => {
-      console.log('✅ 알림 WebSocket 연결 성공!');
       stompClient.subscribe(`/topic/notifications/${email}`, (message) => {
         const newNotification = JSON.parse(message.body);
         setNotifications(prev => [newNotification, ...prev]);
@@ -83,7 +82,7 @@ export default function Navbar() {
       fetchNotifications(userEmail);
       showAlert('성공', '초대를 수락했습니다!');
     } catch (error) {
-      console.error('초대 수락 실패:', error);
+      console.error('Failed to accept invitation:', error.message);
     }
   };
 
@@ -92,7 +91,7 @@ export default function Navbar() {
       await axios.post(`http://localhost:8080/api/notifications/${notificationId}/reject`);
       fetchNotifications(userEmail);
     } catch (error) {
-      console.error('초대 거절 실패:', error);
+      console.error('Failed to reject invitation:', error.message);
     }
   };
 
@@ -101,7 +100,7 @@ export default function Navbar() {
       await axios.patch(`http://localhost:8080/api/notifications/${notificationId}/read`);
       fetchNotifications(userEmail);
     } catch (error) {
-      console.error('읽음 처리 실패:', error);
+      console.error('Failed to mark as read:', error.message);
     }
   };
 

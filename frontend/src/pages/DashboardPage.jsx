@@ -159,16 +159,33 @@ function DashboardPage() {
     // Custom Tooltip for Charts
     const CustomTooltip = ({ active, payload, label }) => {
         if (active && payload && payload.length) {
+            const dataName = payload[0].payload.name || payload[0].name;
+            const typeMapping = {
+                activity: '활동',
+                meal: '식사',
+                travel: '이동',
+                accommodation: '숙소'
+            };
+            
+            const displayName = typeMapping[label] || label || typeMapping[dataName] || dataName;
+
             return (
                 <div className="bg-black/80 border border-white/10 p-3 rounded-lg shadow-xl backdrop-blur-md">
-                    <p className="text-white font-bold text-sm mb-1">{label}</p>
+                    <p className="text-white font-bold text-sm mb-1">{displayName}</p>
                     <p className="text-primary text-sm">
-                        {payload[0].value} {payload[0].name === 'value' ? '회' : '건'}
+                        {payload[0].value} {payload[0].name === 'value' ? '건' : '회'}
                     </p>
                 </div>
             );
         }
         return null;
+    };
+
+    const typeMapping = {
+        activity: '활동',
+        meal: '식사',
+        travel: '이동',
+        accommodation: '숙소'
     };
 
     return (
@@ -314,7 +331,10 @@ function DashboardPage() {
                                     <ResponsiveContainer width="100%" height="100%">
                                         <PieChart>
                                             <Pie
-                                                data={stats.scheduleTypes}
+                                                data={stats.scheduleTypes.map(item => ({
+                                                    ...item,
+                                                    name: typeMapping[item.name] || item.name
+                                                }))}
                                                 cx="50%"
                                                 cy="50%"
                                                 innerRadius={60}
@@ -338,7 +358,7 @@ function DashboardPage() {
                                 {stats.scheduleTypes.map((entry, index) => (
                                     <div key={index} className="flex items-center gap-1.5">
                                         <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
-                                        <span className="text-xs text-gray-400">{entry.name}</span>
+                                        <span className="text-xs text-gray-400">{typeMapping[entry.name] || entry.name}</span>
                                     </div>
                                 ))}
                             </div>

@@ -31,8 +31,12 @@ public class Schedule {
     @JsonIgnore
     private Travels travel;
 
+    /**
+     * JPA @Version을 활용한 Optimistic Locking(낙관적 락) 구현.
+     * 다중 사용자 환경에서의 Race Condition을 방지하고 데이터 정합성을 보장함.
+     */
     @Version
-    private Long version;
+    private Long version = 0L; // 초기화 추가 (Null 방지)
 
     public Schedule(Integer day, String time, String type, String title, String location, String color,
                     String placeName, Double x, Double y, String address, Travels travel) {
